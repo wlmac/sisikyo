@@ -1,0 +1,15 @@
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+pages:
+  image: golang:1.17.1-bullseye
+  before_script:
+    - apt -q update
+    - apt -yq install make
+  script:
+    - make pages
+  artifacts:
+    paths:
+      - public/
+  only:
+    - main
