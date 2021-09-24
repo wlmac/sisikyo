@@ -5,3 +5,5 @@ pages: events.ics
 events.ics:
 	go build -o ical gitlab.com/mirukakoro/sisikyo/events/cmd/ical
 	./ical > events.ics
+
+.PHONY: events.ics
