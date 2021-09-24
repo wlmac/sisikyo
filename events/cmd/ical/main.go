@@ -104,8 +104,9 @@ func getCal(tmpl *template.Template, resp api.EventsResp) (rendered string, err 
 		}
 		ev.SetSummary(event.Name)
 		ev.SetOrganizer(event.Org)
-		if event.AllDay() {
-			ev.SetAllDayStartAt(event.Start)
+		if event.PerDay() {
+			ev.SetAllDayStartAt(event.Start.Truncate(24 * time.Hour))
+			ev.SetAllDayEndAt(event.End.Truncate(24 * time.Hour))
 		} else {
 			ev.SetStartAt(event.Start)
 			ev.SetEndAt(event.End)

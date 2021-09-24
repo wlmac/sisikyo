@@ -58,10 +58,10 @@ type Event struct {
 	Term   int       `json:"term"`
 }
 
-// AllDay returns whether the Event is an all-day event.
+// PerDay returns whether the Event is an all-day event.
 // Note: "all-day event" means that the event is at least 23:59:00 long and is shorter than 24:00:00.
-func (e Event) AllDay() bool {
-	diff := e.End.Sub(e.Start).Truncate(1 * time.Second)
+func (e Event) PerDay() bool {
+	diff := e.End.Sub(e.Start).Truncate(24 * time.Hour).Truncate(1 * time.Second)
 	return diff == 24*time.Hour-1*time.Second
 }
 
@@ -71,7 +71,7 @@ func (e Event) String() string {
 		e.Name,
 		e.Id,
 		e.Org,
-		e.AllDay(),
+		e.PerDay(),
 		e.Start,
 		e.End,
 		e.End.Sub(e.Start),
