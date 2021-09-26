@@ -14,8 +14,6 @@
 // Package main is a command that generates an iCalendar file from the API.
 package main
 
-// TODO: auto-detect all-day events
-
 import (
 	"bytes"
 	"embed"
@@ -105,8 +103,8 @@ func getCal(tmpl *template.Template, resp api.EventsResp) (rendered string, err 
 		ev.SetSummary(event.Name)
 		ev.SetOrganizer(event.Org)
 		if event.PerDay() {
-			ev.SetAllDayStartAt(event.Start.Truncate(24 * time.Hour))
-			ev.SetAllDayEndAt(event.End.Truncate(24 * time.Hour))
+			ev.SetAllDayStartAt(event.Round24Hour(event.Start))
+			ev.SetAllDayEndAt(event.Round24Hour(event.End))
 		} else {
 			ev.SetStartAt(event.Start)
 			ev.SetEndAt(event.End)

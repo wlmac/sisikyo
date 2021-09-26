@@ -14,9 +14,7 @@
 package api
 
 import (
-	"fmt"
 	"net/url"
-	"strings"
 	"time"
 )
 
@@ -58,6 +56,14 @@ type Event struct {
 	Term   int       `json:"term"`
 }
 
+func (e Event) Round24Hour(t time.Time) time.Time {
+	if e.PerDay() {
+		return t.Round(24 * time.Hour)
+	} else {
+		return t
+	}
+}
+
 // PerDay returns whether the Event is an all-day event.
 // Note: "all-day event" means that the event is at least 23:59:00 long and is shorter than 24:00:00.
 func (e Event) PerDay() bool {
@@ -65,38 +71,8 @@ func (e Event) PerDay() bool {
 	return diff == 24*time.Hour-1*time.Second
 }
 
-func (e Event) String() string {
-	return fmt.Sprintf(
-		"%s (id %d)\norg: %s\nall-day: %t\nframe: %s to %s (%s)\npublic: %t\nterm: %d\ntags: %s\n%s",
-		e.Name,
-		e.Id,
-		e.Org,
-		e.PerDay(),
-		e.Start,
-		e.End,
-		e.End.Sub(e.Start),
-		e.Public,
-		e.Term,
-		strings.Join(e.TagsString(), ", "),
-		e.Desc,
-	)
-}
-
-// TagsString generates a string slice with the Tag.Name of each Tag in Tags.
-func (e Event) TagsString() []string {
-	tags := make([]string, len(e.Tags))
-	for i, tag := range e.Tags {
-		tags[i] = tag.String()
-	}
-	return tags
-}
-
 // Tag represents a single tag from the API.
 type Tag struct {
 	Name  string `json:"name"`
 	Color string `json:"color"`
-}
-
-func (t Tag) String() string {
-	return fmt.Sprintf("%s (%s)", t.Name, t.Color)
 }
