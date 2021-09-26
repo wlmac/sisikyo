@@ -40,7 +40,7 @@ func (e EventsReq) Query() (v url.Values) {
 	return v
 }
 
-// EventsResp is the expected response from an Client.Events API call.
+// EventsResp is the expected response from a Client.Events API call.
 type EventsResp = []Event
 
 // Event represents a single event returned by the API.
