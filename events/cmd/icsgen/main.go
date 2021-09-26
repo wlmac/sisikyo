@@ -90,6 +90,14 @@ func getEvents(baseURL *url.URL, timeout time.Duration, start *time.Time, durati
 
 func getCal(tmpl *template.Template, resp api.EventsResp) (rendered string, err error) {
 	cal := ics.NewCalendar()
+	{
+		evs := api.NewEvents(resp)
+		day, err := evs.Day(time.Now()) // TODO: generate up to until 2 or 3 weeks ahead
+		if err != nil {
+			return "", err
+		}
+		resp = append(resp, day)
+	}
 	for i, event := range resp {
 		ev := cal.AddEvent(fmt.Sprintf("%d-%d", i, event.Id))
 		{

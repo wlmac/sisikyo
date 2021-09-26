@@ -1,2 +1,2 @@
-pages: events.ics;
+pages:
 	(cd public && make)
