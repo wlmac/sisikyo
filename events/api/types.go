@@ -14,11 +14,9 @@
 package api
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -44,62 +42,8 @@ func (e EventsReq) Query() (v url.Values) {
 	return v
 }
 
-// EventsResp is the expected response from a Client.Events API call.
+// EventsResp is the expected response from an Client.Events API call.
 type EventsResp = []Event
-
-type Events struct {
-	_ [0]sync.Locker
-	m map[time.Time][]Event
-}
-
-func NewEvents(resp EventsResp) *Events {
-	evs := &Events{m: map[time.Time][]Event{}}
-	for _, ev := range resp {
-		truncated := ev.Start.Truncate(24 * time.Hour)
-		evs.m[truncated] = append(evs.m[truncated], ev)
-	}
-	return evs
-}
-
-var (
-	ErrMultipleLateStarts = errors.New("multiple late starts found")
-	ErrNoSchool           = errors.New("no school")
-)
-
-// IDLocal is an Event.Id that shows that this event was generated locally.
-const IDLocal = -1
-
-// Day generates a new Event for the school day.
-//
-// TODO: copy over logic from metropolis (probs more robust)
-// TODO: support PA Days
-func (e Events) Day(t time.Time) (Event, error) {
-	switch t.Weekday() {
-	case time.Saturday, time.Sunday:
-		return Event{}, ErrNoSchool
-	}
-	start := t.Truncate(24 * time.Hour).Add(9 * time.Hour)
-	end := t.Truncate(24 * time.Hour).Add(14*time.Hour + 45*time.Minute)
-	lateStartI := -1
-	for i, ev := range e.m[t.Truncate(24*time.Hour)] {
-		if ev.lateStart() {
-			if lateStartI != -1 {
-				return Event{}, fmt.Errorf("%w: index %d and index %d", ErrMultipleLateStarts, lateStartI, i)
-			}
-			start = ev.Start
-			lateStartI = i
-		}
-	}
-	return Event{
-		Id:     IDLocal,
-		Org:    orgSchool,
-		Name:   "School",
-		Desc:   "Note: this is experimental and may be incorrect (e.g. PA Days).",
-		Start:  start,
-		End:    end,
-		Public: true,
-	},nil
-}
 
 // Event represents a single event returned by the API.
 type Event struct {
@@ -114,14 +58,6 @@ type Event struct {
 	Term   int       `json:"term"`
 }
 
-func (e Event) Round24Hour(t time.Time) time.Time {
-	if e.PerDay() {
-		return t.Round(24 * time.Hour)
-	} else {
-		return t
-	}
-}
-
 // PerDay returns whether the Event is an all-day event.
 // Note: "all-day event" means that the event is at least 23:59:00 long and is shorter than 24:00:00.
 func (e Event) PerDay() bool {
@@ -129,27 +65,38 @@ func (e Event) PerDay() bool {
 	return diff == 24*time.Hour-1*time.Second
 }
 
-const tagScheduleChange = "schedule change"
-const orgSchool = "School"
-
-// lateStart returns whether the Event is a late-start indication event.
-func (e Event) lateStart() bool {
-	return e.hasTag(tagScheduleChange) &&
-		e.Org == orgSchool &&
-		strings.Contains("late start", strings.ToLower(e.Name))
+func (e Event) String() string {
+	return fmt.Sprintf(
+		"%s (id %d)\norg: %s\nall-day: %t\nframe: %s to %s (%s)\npublic: %t\nterm: %d\ntags: %s\n%s",
+		e.Name,
+		e.Id,
+		e.Org,
+		e.PerDay(),
+		e.Start,
+		e.End,
+		e.End.Sub(e.Start),
+		e.Public,
+		e.Term,
+		strings.Join(e.TagsString(), ", "),
+		e.Desc,
+	)
 }
 
-func (e Event) hasTag(name string) bool {
-	for _, tag := range e.Tags {
-		if tag.Name == name {
-			return true
-		}
+// TagsString generates a string slice with the Tag.Name of each Tag in Tags.
+func (e Event) TagsString() []string {
+	tags := make([]string, len(e.Tags))
+	for i, tag := range e.Tags {
+		tags[i] = tag.String()
 	}
-	return false
+	return tags
 }
 
 // Tag represents a single tag from the API.
 type Tag struct {
 	Name  string `json:"name"`
 	Color string `json:"color"`
+}
+
+func (t Tag) String() string {
+	return fmt.Sprintf("%s (%s)", t.Name, t.Color)
 }
