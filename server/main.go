@@ -5,14 +5,17 @@ package server
 
 import (
 	_ "embed"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/mirukakoro/sisikyo/events/api"
 	"gitlab.com/mirukakoro/sisikyo/events/ics"
+	"gitlab.com/mirukakoro/sisikyo/oauth"
 )
 
 const licenseBrief = "This program, Sisikyo, is a program that provides utilities for an API.\n" +
@@ -32,13 +35,24 @@ func printLicenseInfo() {
 	_, _ = fmt.Fprint(os.Stderr, licenseBrief)
 }
 
-func setupFlag() string {
+func setupFlag() (string, error) {
 	var port int
 	var host string
+	var apiURL string
 	flag.IntVar(&port, "port", 8080, "port to bind to")
 	flag.StringVar(&host, "host", "", "host to bind to")
+	flag.StringVar(&apiURL, "api-url", "", "URL of API to use")
 	flag.Parse()
-	return fmt.Sprintf("%s:%d", host, port)
+
+	if apiURL == "" {
+		return "", errors.New("api-url: cannot be blank")
+	}
+	var err error
+	api.DefaultBaseURL, err = url.Parse(apiURL)
+	if err != nil {
+		return "", fmt.Errorf("api-url: %w", err)
+	}
+	return fmt.Sprintf("%s:%d", host, port), nil
 }
 
 func makeEventsResp(render func(c *gin.Context, evs []api.Event), f func(o ICSOptions) ([]api.Event, error)) func(c *gin.Context) {
@@ -118,11 +132,16 @@ func setupEngine(e *gin.Engine) {
 			return o.List(cl)
 		},
 	))
+	e.GET("/o/redirect", oauth.RedirectJSON)
+	e.GET("/o/authorize", oauth.Authorize)
 }
 
 func Main() error {
 	printLicenseInfo()
-	addr := setupFlag()
+	addr, err := setupFlag()
+	if err != nil {
+		return err
+	}
 	e := gin.Default()
 	setupEngine(e)
 	return e.Run(addr)
