@@ -15,61 +15,39 @@
 package api
 
 import (
-	"encoding/json"
-	"errors"
-	"io"
 	"net/http"
-	"net/url"
 )
 
 // HTTPClient is a subset of the *http.Client interface.
 type HTTPClient interface {
-	Get(url string) (resp *http.Response, err error)
+	Do(r *http.Request) (resp *http.Response, err error)
 }
 
-type Client struct {
-	client  HTTPClient
-	baseURL *url.URL
+type Req interface {
+	Req(c *Client) (*http.Request, error)
 }
 
-var DefaultBaseURL, _ = url.Parse("https://maclyonsden.com/api/")
-
-func DefaultClient() *Client {
-	return &Client{client: http.DefaultClient, baseURL: DefaultBaseURL}
-}
-
-func NewClient(client HTTPClient, baseURL *url.URL) *Client {
-	return &Client{client: client, baseURL: baseURL}
-}
-
-func (c *Client) do(url string, v interface{}) (err error) {
-	resp, err := c.client.Get(url)
-	if err != nil {
-		return err
-	}
-	defer func(Body io.ReadCloser) {
-		err2 := Body.Close()
-		if err2 != nil {
-			err = err2
-		}
-	}(resp.Body)
-	if resp.StatusCode >= 300 || resp.StatusCode < 200 {
-		return errors.New(resp.Status)
-	}
-	err = json.NewDecoder(resp.Body).Decode(v)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *Client) Events(req EventsReq) (resp EventsResp, err error) {
-	u := c.baseURL.ResolveReference(eventsURL)
-	u.RawQuery = req.Query().Encode()
-	resp = EventsResp{}
-	err = c.do(u.String(), &resp)
-	if err != nil {
-		return
-	}
-	return
+var Reqs = [...]Req{
+	AuthReq{},
+	AuthReReq{},
+	AnnFeedReq{},
+	AnnReq{},
+	OrgReq{},
+	OrgsReq{},
+	UserReq{},
+	MeReq{},
+	MeScheduleReq{},
+	MeScheduleWeekReq{},
+	MeTimetableReq{},
+	EventsReq{},
+	//TimetablesReq{},
+	//TimetableScheduleReq{},
+	//TimetableReq{},
+	TermsReq{},
+	//TermReq{},
+	//TermCurrentReq{},
+	//TermScheduleReq{},
+	//TermScheduleWeekReq{},
+	// martor_image_upload unsupported
+	VersionReq{},
 }

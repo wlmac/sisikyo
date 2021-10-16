@@ -18,10 +18,11 @@ import (
 	_ "embed"
 )
 
-const StartupInfo = `This program, named Sisikyō or Sisikyo, is a program that fetches event information from an API.
-Copyright (C) 2021 Ken Shibata <kenxshibata@gmail.com>
-This program comes with ABSOLUTELY NO WARRANTY and this program is free software, and you are welcome to redistribute it under certain conditions; for details run with the '-h' flag or view the 'license.md' file. This program uses open source software; for details run with the '-h' flag or view the 'license.md' file.
-`
+const StartupInfo = "This program, named Sisikyō or Sisikyo, is a program that fetches event information from an API.\n" +
+	"Copyright (C) 2021 Ken Shibata <kenxshibata@gmail.com>\n" +
+	"This program comes with ABSOLUTELY NO WARRANTY and this program is free software, and you are welcome to redistribute " +
+	"it under certain conditions; for details run with the '-h' flag or view the 'license.md' file.\n" +
+	"This program uses open source software; for details run with the '-h' flag or view the 'license.md' file.\n"
 
 //go:embed license_info.md
 var LicenseInfo string

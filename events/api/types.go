@@ -1,61 +1,148 @@
-// This file is part of a program named Sisikyō or Sisikyo.
-//
-// Copyright (C) 2019 Ken Shibata <kenxshibata@gmail.com>
-//
-// License as published by the Free Software Foundation, either version 1 of the License, or (at your option) any later
-// version.
-//
-// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
-// warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License along with this program. If not, see
-// <https://www.gnu.org/licenses/>.
-
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
-	"strings"
+	"strconv"
 	"time"
 )
 
-// eventsURL is the url for a Client.Events API call.
-var eventsURL, _ = url.Parse("events")
-
-// EventsReq has the options for a Client.Events API call.
-type EventsReq struct {
-	Start *time.Time
-	End   *time.Time
+type Data interface {
+	URL(c *Client) *url.URL
 }
 
-// Query serializes the options in EventsReq to a new url.Values.
-func (e EventsReq) Query() (v url.Values) {
-	v = url.Values{}
-	v.Add("format", "json")
-	if e.Start != nil {
-		v.Add("start", e.Start.Format(time.RFC3339))
-	}
-	if e.End != nil {
-		v.Add("end", e.End.Format(time.RFC3339))
-	}
-	return v
+var _ = [...]Data{
+	Timeframe{},
+	Ann{},
+	Course{},
+	Term{},
+	Event{},
+	Org{},
+	Tag{},
+	Schedule{},
 }
 
-// EventsResp is the expected response from an Client.Events API call.
-type EventsResp = []Event
+type Timeframe struct {
+	Start time.Time `json:"start"`
+	End   time.Time `json:"end"`
+}
 
-// Event represents a single event returned by the API.
-type Event struct {
-	Id     int       `json:"id"`
-	Org    string    `json:"organization"`
-	Tags   []Tag     `json:"tags"`
+func (t Timeframe) URL(_ *Client) *url.URL { return nil }
+
+// Ann represents an announcement.
+// Model: core.models.post.Announcement
+// Serializer: core.api.serializers.announcement.AnnouncementSerializer
+type Ann struct {
+	Id           AnnID     `json:"id"`
+	Author       Username  `json:"author"`
+	Org          OrgName   `json:"organization"`
+	Tags         []Tag     `json:"tags"`
+	Created      time.Time `json:"created_date"`
+	LastModified time.Time `json:"last_modified_date"`
+	Title        string    `json:"title"`
+	Body         string    `json:"body"`
+	Public       bool      `json:"is_public"`
+
+	// fields below are not in the API
+	XAuthor    UserResp
+	XOrg       Org
+	XImageURL  string
+	XImagePath string
+	XImageAlt  string
+	XURL       string
+}
+
+var annBaseURL, _ = url.Parse("/announcement/")
+
+func (a Ann) URL(c *Client) *url.URL {
+	id, _ := url.Parse(strconv.FormatInt(int64(a.Id), 10))
+	return c.baseURL.ResolveReference(annBaseURL).ResolveReference(id)
+}
+
+func (a Ann) String() string {
+	return fmt.Sprintf(
+		"(%d) %s\nauthor: %s\norg: %s\ntags: %v\ncreated: %s\nlast modified: %s\npublic: %t\n\n%s",
+		a.Id,
+		a.Title,
+		a.Author,
+		a.Org,
+		a.Tags,
+		a.Created,
+		a.LastModified,
+		a.Public,
+		a.Body,
+	)
+}
+
+func (a Ann) ReqOrg(c *Client) (Org, error) {
+	resp := OrgsResp{}
+	err := c.Do(OrgsReq{}, &resp)
+	if err != nil {
+		return Org{}, err
+	}
+	for _, org := range resp {
+		if org.Name == a.Org {
+			return org, nil
+		}
+	}
+	return Org{}, errors.New("not found")
+}
+
+// Course represents a course.
+// TODO: fill model
+// Model: core.models.course.Course
+// Serializer: core.api.serializers.course.CourseSerializer
+type Course struct {
+	Id        CourseID    `json:"id"`
+	Code      CourseCode  `json:"code"`
+	Term      TermID      `json:"term"`
+	Desc      string      `json:"description"`
+	Position  int         `json:"position"`
+	Submitter interface{} `json:"submitter"`
+}
+
+func (c Course) URL(c2 *Client) *url.URL { return c2.baseURL }
+
+func (c Course) String() string {
+	return fmt.Sprintf("(%d) %s (term %d) (position %d) (submitter %v): %s", c.Id, c.Code, c.Term, c.Position, c.Submitter, c.Desc)
+}
+
+// Term represents a term.
+// TODO: fill model
+// Model: core.models.course.Term
+// Serializer: core.api.serializers.course.TermSerializer
+type Term struct {
+	Id     TermID    `json:"id"`
 	Name   string    `json:"name"`
 	Desc   string    `json:"description"`
+	Fmt    string    `json:"timetable_format"`
+	Start  time.Time `json:"start"`
+	End    time.Time `json:"end"`
+	Frozen bool      `json:"is_frozen"`
+}
+
+func (t Term) URL(c *Client) *url.URL { return c.baseURL }
+
+// Event represents an event,
+// Model: core.models.course.Event
+// Serializer: core.api.serializers.course.EventSerializer
+type Event struct {
+	Id     EventID   `json:"id"`
+	Name   string    `json:"name"`
+	Desc   string    `json:"description"`
+	Tags   []Tag     `json:"tags"`
+	Term   TermID    `json:"term"`
+	Org    Org       `json:"organization"`
 	Start  time.Time `json:"start_date"`
 	End    time.Time `json:"end_date"`
 	Public bool      `json:"is_public"`
-	Term   int       `json:"term"`
+}
+
+func (e Event) URL(c *Client) *url.URL { return c.baseURL }
+
+func (e Event) String() string {
+	return fmt.Sprintf("(%d) %s (%s~%s,%s): %s", e.Id, e.Name, e.Start, e.End, e.End.Sub(e.Start), e.Desc)
 }
 
 // PerDay returns whether the Event is an all-day event.
@@ -65,38 +152,65 @@ func (e Event) PerDay() bool {
 	return diff == 24*time.Hour-1*time.Second
 }
 
-func (e Event) String() string {
-	return fmt.Sprintf(
-		"%s (id %d)\norg: %s\nall-day: %t\nframe: %s to %s (%s)\npublic: %t\nterm: %d\ntags: %s\n%s",
-		e.Name,
-		e.Id,
-		e.Org,
-		e.PerDay(),
-		e.Start,
-		e.End,
-		e.End.Sub(e.Start),
-		e.Public,
-		e.Term,
-		strings.Join(e.TagsString(), ", "),
-		e.Desc,
-	)
+// Org represents an organization.
+// Model:core.models.organization.Org
+// Serializer: core.api.serializers.organization.OrganizationSerializer
+type Org struct {
+	Id          int           `json:"id"`
+	Owner       interface{}   `json:"owner"`
+	Supervisors []interface{} `json:"supervisors"`
+	Execs       []interface{} `json:"execs"`
+	Tags        []Tag         `json:"tags"`
+	Name        OrgName       `json:"name"`
+	Bio         string        `json:"bio"`
+	Extra       string        `json:"extra_content"`
+	Slug        OrgSlug       `json:"slug"`
+	Registered  time.Time     `json:"registered_date"`
+	Open        bool          `json:"is_open"`
+	AppsOpen    bool          `json:"applications_open"`
+	Banner      string        `json:"banner"`
+	Icon        string        `json:"icon"`
 }
 
-// TagsString generates a string slice with the Tag.Name of each Tag in Tags.
-func (e Event) TagsString() []string {
-	tags := make([]string, len(e.Tags))
-	for i, tag := range e.Tags {
-		tags[i] = tag.String()
-	}
-	return tags
+var orgBaseURL, _ = url.Parse("/club/")
+
+func (o Org) URL(c *Client) *url.URL {
+	slug, _ := url.Parse(url.PathEscape(string(o.Slug)))
+	return c.baseURL.ResolveReference(orgBaseURL).ResolveReference(slug)
 }
 
 // Tag represents a single tag from the API.
 type Tag struct {
+	ID    TagID  `json:"id"`
 	Name  string `json:"name"`
 	Color string `json:"color"`
 }
 
-func (t Tag) String() string {
-	return fmt.Sprintf("%s (%s)", t.Name, t.Color)
+func (t Tag) URL(c *Client) *url.URL { return c.baseURL }
+
+type Schedule struct {
+	Description struct {
+		Time   string `json:"time"`
+		Course string `json:"course"`
+	} `json:"description"`
+	Time   Timeframe   `json:"time"`
+	Pos    []int       `json:"position"`
+	Cycle  string      `json:"cycle"`
+	Course *CourseCode `json:"course"`
+}
+
+func (s Schedule) URL(_ *Client) *url.URL { return nil }
+
+func (s Schedule) Event(c *Client) (Event, error) {
+	course, err := s.Course.Deref(c)
+	if err != nil {
+		return Event{}, err
+	}
+	return Event{
+		Id:    -1,
+		Name:  string(course.Code),
+		Desc:  fmt.Sprintf("ID: %d\nTerm: %d\nPosition: %d, %d\nCycle: %s\n\n%s", course.Id, course.Term, course.Position, s.Pos, s.Cycle, course.Desc),
+		Start: s.Time.Start,
+		End:   s.Time.End,
+	}, nil
 }

@@ -1,0 +1,13 @@
+{{define "feed-body"}}
+{{with .XImageAlt}}{{.}}
+
+{{end}}{{.Title}}
+
+️By {{.XAuthor.Name}} on behalf of {{.XOrg.Name}} for {{if .Public}}everyone{{else}}members{{end}}.
+{{with .Tags}}Tags: {{range $i, $tag := .}}{{if $i}}, {{end}}{{.Name}}{{end}}{{end}}
+ID: {{.Id}}
+
+See the full announcement: {{.XURL}}
+
+{{.Body}}
+{{end}}
