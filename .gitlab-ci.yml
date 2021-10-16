@@ -1,15 +1,17 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
-pages:
-  image: golang:1.17.1-bullseye
+stages:
+    - deploy
+
+prod:
+  image: ruby:latest
+  stage: deploy
   before_script:
-    - apt -q update
-    - apt -yq install make
-  script:
-    - make pages
-  artifacts:
-    paths:
-      - public/
+    - apt-get -yqq update
+    - apt-get -yqq install ruby-dev
+    - gem install dpl
+  script: 
+    - dpl --provider=heroku --app=$HEROKU_APP_PROD --api-key=$HEROKU_API_KEY
   only:
     - main
