@@ -1,0 +1,10 @@
+{{define "title"}}Error: OAuth{{end}}
+{{define "body"}}
+	{{.name}}
+	{{.desc}}
+	{{with .uri}}
+		<a href="{{.uri}}">More information</a>
+	{{end}}
+{{end}}
+
+{{template "base.html.tmpl" .}}

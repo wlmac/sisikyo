@@ -16,6 +16,8 @@ import (
 	"gitlab.com/mirukakoro/sisikyo/events/api"
 	"gitlab.com/mirukakoro/sisikyo/events/ics"
 	"gitlab.com/mirukakoro/sisikyo/oauth"
+	"gitlab.com/mirukakoro/sisikyo/server/static"
+	"gitlab.com/mirukakoro/sisikyo/server/tmpls"
 )
 
 const licenseBrief = "This program, Sisikyo, is a program that provides utilities for an API.\n" +
@@ -96,6 +98,8 @@ func makeEventsResp(render func(c *gin.Context, evs []api.Event), f func(o ICSOp
 }
 
 func setupEngine(e *gin.Engine) {
+	e.SetHTMLTemplate(tmpls.Tmpl)
+
 	cl := api.DefaultClient()
 	e.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "%s", licenseBrief)
@@ -132,8 +136,25 @@ func setupEngine(e *gin.Engine) {
 			return o.List(cl)
 		},
 	))
-	e.GET("/o/redirect", oauth.RedirectJSON)
-	e.GET("/o/authorize", oauth.Authorize)
+	e.GET("/o/redirect.txt", oauth.RedirectJSON)
+	e.GET("/o/redirect", oauth.Redirect)
+	e.GET("/o/authorize.txt", oauth.Authorize)
+	e.GET("/o/authorize", func(c *gin.Context) {
+		url, err := oauth.Authorize2(cl)
+		if err != nil {
+			c.HTML(http.StatusInternalServerError, "error.html.tmpl", gin.H{
+				"err": err,
+			})
+			return
+		}
+		c.HTML(http.StatusOK, "authorize.html.tmpl", gin.H{
+			"url": url,
+		})
+	})
+	e.StaticFS("/static", http.FS(static.Static))
+	e.GET("/:path", func(c *gin.Context) {
+		c.String(http.StatusOK, "%s", c.Request.URL.Path)
+	})
 }
 
 func Main() error {

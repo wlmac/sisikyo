@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/mirukakoro/sisikyo/events/api"
+	"golang.org/x/oauth2"
 )
 
 type RedirectParams struct {
@@ -31,6 +32,28 @@ func (r RedirectParams) IsError() bool {
 	return r.Error != ""
 }
 
+func Redirect(c *gin.Context) {
+	params := RedirectParams{}
+	err := c.Bind(&params)
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "error.html.tmpl", fmt.Sprintf("bad params: %s", err.Error()))
+		return
+	}
+	if !params.IsValid() {
+		c.HTML(http.StatusBadRequest, "error.html.tmpl", "invalid params")
+		return
+	}
+	if params.IsError() {
+		c.HTML(http.StatusOK, "error.html.tmpl", gin.H{
+			"name": params.Error,
+			"desc": params.ErrorDesc,
+			"url":  params.ErrorURI,
+		})
+		return
+	}
+	//c.HTML(http.StatusOK, "ok.html.tmpl", params.Code)
+}
+
 func RedirectJSON(c *gin.Context) {
 	params := RedirectParams{}
 	err := c.Bind(&params)
@@ -47,6 +70,7 @@ func RedirectJSON(c *gin.Context) {
 			"name": params.Error,
 			"desc": params.ErrorDesc,
 		})
+		return
 	}
 	c.JSON(http.StatusOK, nil)
 }
@@ -67,6 +91,26 @@ func Authorize(c *gin.Context) {
 	q.Set("state", base64.URLEncoding.EncodeToString(state))
 	u.RawQuery = q.Encode()
 	c.String(http.StatusOK, u.String())
+}
+
+func Authorize2(c *api.Client) (string, error) {
+	authURL, _ := url.Parse("/o/authorize")
+	tokenURL, _ := url.Parse("/o/token")
+	cfg := oauth2.Config{
+		ClientID:     "aD87ahyBviMiz4kkswBIrTyp7sjbhN7paYxXF0kf",
+		ClientSecret: "MwJXfcdjcKELGTJA8Ak6Wg7Ty5cWv4TSMLiVfiIP4aBgy0JMzJTE5R4dKUxxuwC9H5WgVzfjxpF7UfsOe4qrXj3EsJnQZsfPmLQCqUdpa0UgTFbni2PAnAabBlKV8lyF",
+		Endpoint: oauth2.Endpoint{
+			AuthURL:   c.BaseURL().ResolveReference(authURL).String(),
+			TokenURL:  c.BaseURL().ResolveReference(tokenURL).String(),
+			AuthStyle: oauth2.AuthStyleInHeader,
+		},
+		Scopes: []string{"me_schedule"},
+	}
+	state, err := genRandom(64)
+	if err != nil {
+		return "", err
+	}
+	return cfg.AuthCodeURL(string(state)), nil
 }
 
 func genRandom(l int) ([]byte, error) {
