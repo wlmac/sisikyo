@@ -10,6 +10,8 @@ require (
 	github.com/disintegration/imaging v1.6.2
 	github.com/gin-gonic/gin v1.7.4
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
+	github.com/jmoiron/sqlx v1.3.4
+	github.com/mattn/go-sqlite3 v1.14.6
 	golang.org/x/image v0.0.0-20200430140353-33d19683fad8
 	golang.org/x/oauth2 v0.0.0-20211005180243-6b3c2da341f1
 )

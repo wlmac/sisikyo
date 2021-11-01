@@ -3,10 +3,8 @@ package oauth
 // TODO: use golang.org/x/oauth2
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"fmt"
-	"math/big"
 	"net/http"
 	"net/url"
 
@@ -14,6 +12,16 @@ import (
 	"gitlab.com/mirukakoro/sisikyo/events/api"
 	"golang.org/x/oauth2"
 )
+
+type OAuth struct {
+	config oauth2.Config
+}
+
+func NewOAuth(config oauth2.Config) *OAuth {
+	return &OAuth{
+		config: config,
+	}
+}
 
 type RedirectParams struct {
 	State string `form:"state"`
@@ -104,24 +112,11 @@ func Authorize2(c *api.Client) (string, error) {
 			TokenURL:  c.BaseURL().ResolveReference(tokenURL).String(),
 			AuthStyle: oauth2.AuthStyleInHeader,
 		},
-		Scopes: []string{"me_schedule"},
+		Scopes: []string{"me_meta", "me_schedule", "me_timetable"},
 	}
 	state, err := genRandom(64)
 	if err != nil {
 		return "", err
 	}
 	return cfg.AuthCodeURL(string(state)), nil
-}
-
-func genRandom(l int) ([]byte, error) {
-	const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
-	result := make([]byte, l)
-	for i := 0; i < l; i++ {
-		j, err := rand.Int(rand.Reader, new(big.Int).SetInt64(int64(len(letters))))
-		if err != nil {
-			return nil, err
-		}
-		result[i] = letters[j.Int64()]
-	}
-	return result, nil
 }
