@@ -48,7 +48,6 @@ func (c *Client) Do(req Req, v interface{}) (err error) {
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Accept-Encoding", "application/json")
 	resp, err := c.client.Do(request)
 	if err != nil {
 		return err
