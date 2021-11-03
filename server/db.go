@@ -14,12 +14,12 @@ import (
 
 var driverName string
 var dataSourceName string
-var dbPing time.Duration
+var dbTimeout time.Duration
 
 func init() {
 	flag.StringVar(&driverName, "db-driver", "", "database: driver to use")
 	flag.StringVar(&dataSourceName, "db-source", "", "database: data source")
-	flag.DurationVar(&dbPing, "db-ping", 1*time.Second, "database: ping timeout")
+	flag.DurationVar(&dbTimeout, "db-timeout", 1*time.Second, "database: ping timeout")
 }
 
 func setupDb() (*sqlx.DB, error) {
@@ -27,7 +27,7 @@ func setupDb() (*sqlx.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("conn: %w", err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), dbPing)
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 	err = conn.PingContext(ctx)
 	if err != nil {

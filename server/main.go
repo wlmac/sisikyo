@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"gitlab.com/mirukakoro/sisikyo/oauth"
 )
 
 func Main() error {
@@ -22,11 +23,16 @@ func Main() error {
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
-	err = setupAPI()
+	cl, err := setupAPI()
 	if err != nil {
 		return fmt.Errorf("api: %w", err)
 	}
+	oCfg, err := setupOauth()
+	if err != nil {
+		return fmt.Errorf("oauth: %w", err)
+	}
+	oCl := oauth.NewClient(*oCfg)
 	e := gin.Default()
-	setupEngine(e, conn)
+	setupEngine(e, cl, oCl, conn)
 	return e.Run(addr)
 }

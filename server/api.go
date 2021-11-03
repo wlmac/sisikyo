@@ -28,12 +28,18 @@ func setupAPI() (*api.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("api-url: %w", err)
 	}
+
+	// version check
+	log.Printf("api version: compatible with %s", api.APIVersion)
 	cl := api.NewClient(&http.Client{Timeout: apiTimeout}, baseURL)
-	resp := api.VersionResp{}
-	err = cl.Do(api.VersionReq{}, &resp)
+	ver, ok, err := cl.CheckAPIVersion()
 	if err != nil {
-		return nil, fmt.Errorf("api version: %w", err)
+		return nil, fmt.Errorf("api version check: %w", err)
 	}
-	log.Printf("api: conn'd (version: %s)", resp.Version)
+	if ok {
+		log.Printf("api version: compatible with server(version: %s)", ver)
+	} else {
+		return nil, fmt.Errorf("api version: incompatible with server (version: %s)", ver)
+	}
 	return cl, nil
 }

@@ -9,8 +9,6 @@ import (
 	"gitlab.com/mirukakoro/sisikyo/events/api"
 	"gitlab.com/mirukakoro/sisikyo/events/ics"
 	"gitlab.com/mirukakoro/sisikyo/oauth"
-	"gitlab.com/mirukakoro/sisikyo/server/static"
-	"gitlab.com/mirukakoro/sisikyo/server/tmpls"
 )
 
 func makeEventsResp(render func(c *gin.Context, evs []api.Event), f func(o ICSOptions) ([]api.Event, error)) func(c *gin.Context) {
@@ -29,34 +27,19 @@ func makeEventsResp(render func(c *gin.Context, evs []api.Event), f func(o ICSOp
 		}
 
 		render(c, evs)
-
-		//	auth := api.Auth{}
-		//	{
-		//		authResp := api.AuthResp{}
-		//		err = cl.Do(api.AuthReq{
-		//			Username: username,
-		//			Password: password,
-		//		}, &authResp)
-		//		if err != nil {
-		//			_ = c.AbortWithError(http.StatusForbidden, fmt.Errorf("auth: %w", err))
-		//			return
-		//		}
-		//		authResp.UpdateAuth(&auth)
-		//	}
-
-		//	courseEvents, err := cl.CourseEvents(auth)
-		//	if err != nil {
-		//		_ = c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("course events: %w", err))
-		//		return
-		//	}
-		//	events = append(events, courseEvents...)
 	}
 }
 
-func setupEngine(e *gin.Engine, conn *sqlx.DB) {
-	e.SetHTMLTemplate(tmpls.Tmpl)
+func renderIcs(c *gin.Context, evs []api.Event) {
+	cal, err := ics.GetCal(ics.Tmpl, evs)
+	if err != nil {
+		_ = c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("cal: %w", err))
+		return
+	}
+	c.Data(http.StatusOK, "text/calendar", []byte(cal))
+}
 
-	cl := api.DefaultClient()
+func setupEngine(e *gin.Engine, cl *api.Client, o *oauth.Client, conn *sqlx.DB) {
 	e.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "%s", licenseBrief)
 	})
@@ -71,15 +54,6 @@ func setupEngine(e *gin.Engine, conn *sqlx.DB) {
 		c.JSON(http.StatusOK, evs)
 	}
 
-	ics := func(c *gin.Context, evs []api.Event) {
-		cal, err := ics.GetCal(ics.Tmpl, evs)
-		if err != nil {
-			_ = c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("cal: %w", err))
-			return
-		}
-		c.Data(http.StatusOK, "text/calendar", []byte(cal))
-	}
-
 	e.GET("/events/public.json", makeEventsResp(
 		json,
 		func(o ICSOptions) ([]api.Event, error) {
@@ -87,28 +61,41 @@ func setupEngine(e *gin.Engine, conn *sqlx.DB) {
 		},
 	))
 	e.GET("/events/public.ics", makeEventsResp(
-		ics,
+		renderIcs,
 		func(o ICSOptions) ([]api.Event, error) {
 			return o.List(cl)
 		},
 	))
-	e.GET("/o/redirect.txt", oauth.RedirectJSON)
-	e.GET("/o/redirect", oauth.Redirect)
-	e.GET("/o/authorize.txt", oauth.Authorize)
-	e.GET("/o/authorize", func(c *gin.Context) {
-		url, err := oauth.Authorize2(cl)
-		if err != nil {
-			c.HTML(http.StatusInternalServerError, "error.html.tmpl", gin.H{
-				"err": err,
+
+	ec := engineContext{
+		e:   e,
+		api: cl,
+		o:   o,
+		db:  conn,
+	}
+	e.GET("/events/:control/private.json", ec.UserQuery)
+	e.POST("/remove/:control", ec.UserRemove)
+	e.GET("/o/redirect", ec.OauthRedirect)
+	e.GET("/o/authorize", ec.OauthAuthorize)
+	/*
+		e.GET("/o/redirect.txt", oauth.RedirectJSON)
+		e.GET("/o/redirect", oauth.Redirect)
+		e.GET("/o/authorize.txt", oauth.Authorize)
+		e.GET("/o/authorize", func(c *gin.Context) {
+			url, err := oauth.Authorize2(cl)
+			if err != nil {
+				c.HTML(http.StatusInternalServerError, "error.html.tmpl", gin.H{
+					"err": err,
+				})
+				return
+			}
+			c.HTML(http.StatusOK, "authorize.html.tmpl", gin.H{
+				"url": url,
 			})
-			return
-		}
-		c.HTML(http.StatusOK, "authorize.html.tmpl", gin.H{
-			"url": url,
 		})
-	})
-	e.StaticFS("/static", http.FS(static.Static))
-	e.GET("/:path", func(c *gin.Context) {
-		c.String(http.StatusOK, "%s", c.Request.URL.Path)
-	})
+		e.StaticFS("/static", http.FS(static.Static))
+		e.GET("/:path", func(c *gin.Context) {
+			c.String(http.StatusOK, "%s", c.Request.URL.Path)
+		})
+	*/
 }
