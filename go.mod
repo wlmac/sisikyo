@@ -1,6 +1,8 @@
 module gitlab.com/mirukakoro/sisikyo
 
 // +heroku goVersion go1.17
+// +heroku install ./server/cmd
+
 go 1.17
 
 require (
