@@ -1,3 +1,4 @@
+# OAUTH_CLIENT_{ID;SECRET} are for my local setup, so it should not matter
 OAUTH_CLIENT_ID="XNc77hFC2VjQJUqW0vLrlsH6UInm2Uivf6u52GE3"
 OAUTH_CLIENT_SECRET="250WW680mvzDZuR2I1gGncM3Ezlw85DHUA5SjCgFcidLCvy8qh5VTx96cxJSIjlLXMomfLkWvShuuPx1ICVfqVfLfEyCJhbkR05lf4BXkX0ckzbMkYzt6ujNvwsbDXLj"
 
