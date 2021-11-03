@@ -3,120 +3,55 @@ package oauth
 // TODO: use golang.org/x/oauth2
 
 import (
-	"encoding/base64"
-	"fmt"
-	"net/http"
-	"net/url"
+	"context"
+	"errors"
 
-	"github.com/gin-gonic/gin"
-	"gitlab.com/mirukakoro/sisikyo/events/api"
+	"gitlab.com/mirukakoro/sisikyo/util"
 	"golang.org/x/oauth2"
 )
 
-type OAuth struct {
-	config oauth2.Config
+// Client is a wrapper that provides convenience methods around oauth2.Config.
+type Client struct {
+	oauth2.Config
 }
 
-func NewOAuth(config oauth2.Config) *OAuth {
-	return &OAuth{
-		config: config,
+// NewClient makes a new Client with config.
+func NewClient(config oauth2.Config) *Client {
+	return &Client{
+		Config: config,
 	}
 }
 
-type RedirectParams struct {
-	State string `form:"state"`
-	Code  string `form:"code"`
+var (
+	ErrStateMismatch = errors.New("state: unexpected mismatch") // given states do not match
+	ErrParamsInvalid = errors.New("params: invalid")            // invalid params
+)
 
-	Error     string `form:"error"`
-	ErrorDesc string `form:"error_description"`
-	ErrorURI  string `form:"error_uri"`
+// Auth returns a oauth2.Token from a code.
+func (o *Client) Auth(ctx context.Context, code string) (*oauth2.Token, error) {
+	return o.Config.Exchange(ctx, code)
 }
 
-func (r RedirectParams) IsValid() bool {
-	return r.Code != "" || r.Error != ""
-}
-
-func (r RedirectParams) IsError() bool {
-	return r.Error != ""
-}
-
-func Redirect(c *gin.Context) {
-	params := RedirectParams{}
-	err := c.Bind(&params)
-	if err != nil {
-		c.HTML(http.StatusBadRequest, "error.html.tmpl", fmt.Sprintf("bad params: %s", err.Error()))
-		return
-	}
+// CheckCode checks if the states are correct (are equal) and returns an appropriate error if necessary
+func (o *Client) CheckCode(expectedState string, params RedirectParams) error {
 	if !params.IsValid() {
-		c.HTML(http.StatusBadRequest, "error.html.tmpl", "invalid params")
-		return
+		return ErrParamsInvalid
 	}
-	if params.IsError() {
-		c.HTML(http.StatusOK, "error.html.tmpl", gin.H{
-			"name": params.Error,
-			"desc": params.ErrorDesc,
-			"url":  params.ErrorURI,
-		})
-		return
+	if err := params.HasError(); err != nil {
+		return err
 	}
-	//c.HTML(http.StatusOK, "ok.html.tmpl", params.Code)
+	if params.State != expectedState {
+		return ErrStateMismatch
+	}
+	return nil
 }
 
-func RedirectJSON(c *gin.Context) {
-	params := RedirectParams{}
-	err := c.Bind(&params)
+// AuthorizeURL returns an authorization URL that the user can access.
+func (o *Client) AuthorizeURL() (state string, url string, err error) {
+	state, err = util.GenRandom(64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, fmt.Sprintf("bad params: %s", err.Error()))
 		return
 	}
-	if !params.IsValid() {
-		c.JSON(http.StatusBadRequest, "invalid params")
-		return
-	}
-	if params.IsError() {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"name": params.Error,
-			"desc": params.ErrorDesc,
-		})
-		return
-	}
-	c.JSON(http.StatusOK, nil)
-}
-
-var authorizeURL, _ = url.Parse("o/authorize")
-
-func Authorize(c *gin.Context) {
-	clientID := "aD87ahyBviMiz4kkswBIrTyp7sjbhN7paYxXF0kf"
-	u := api.DefaultBaseURL.ResolveReference(authorizeURL)
-	q := u.Query()
-	q.Set("response_type", "code")
-	q.Set("client_id", clientID)
-	q.Set("scope", "me_schedule")
-	state, err := genRandom(64)
-	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-	}
-	q.Set("state", base64.URLEncoding.EncodeToString(state))
-	u.RawQuery = q.Encode()
-	c.String(http.StatusOK, u.String())
-}
-
-func Authorize2(c *api.Client) (string, error) {
-	authURL, _ := url.Parse("/o/authorize")
-	tokenURL, _ := url.Parse("/o/token")
-	cfg := oauth2.Config{
-		ClientID:     "aD87ahyBviMiz4kkswBIrTyp7sjbhN7paYxXF0kf",
-		ClientSecret: "MwJXfcdjcKELGTJA8Ak6Wg7Ty5cWv4TSMLiVfiIP4aBgy0JMzJTE5R4dKUxxuwC9H5WgVzfjxpF7UfsOe4qrXj3EsJnQZsfPmLQCqUdpa0UgTFbni2PAnAabBlKV8lyF",
-		Endpoint: oauth2.Endpoint{
-			AuthURL:   c.BaseURL().ResolveReference(authURL).String(),
-			TokenURL:  c.BaseURL().ResolveReference(tokenURL).String(),
-			AuthStyle: oauth2.AuthStyleInHeader,
-		},
-		Scopes: []string{"me_meta", "me_schedule", "me_timetable"},
-	}
-	state, err := genRandom(64)
-	if err != nil {
-		return "", err
-	}
-	return cfg.AuthCodeURL(string(state)), nil
+	url = o.Config.AuthCodeURL(string(state))
+	return
 }

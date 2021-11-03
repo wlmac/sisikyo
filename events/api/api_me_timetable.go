@@ -22,7 +22,7 @@ func (req MeTimetableReq) Req(c *Client) (*http.Request, error) {
 
 type MeTimetableResp struct {
 	Id      int      `json:"id"`
-	Owner   string   `json:"owner"`
+	Owner   User     `json:"owner"`
 	Term    Term     `json:"term"`
 	Courses []Course `json:"courses"`
 }

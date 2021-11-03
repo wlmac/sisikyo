@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -19,6 +20,8 @@ type engineContext struct { // yes, great naming
 	o   *oauth.Client
 	db  *sqlx.DB
 }
+
+// controlParam is a param binding for Gin.
 type controlParam struct {
 	Control string `uri:"control" binding:"required"`
 }
@@ -48,72 +51,85 @@ func (e *engineContext) UserRemove(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (e *engineContext) UserQuery(c *gin.Context) {
-	var params controlParam
-	if err := c.ShouldBindUri(&params); err != nil {
-		c.JSON(http.StatusBadRequest, "params get: failed")
-		return
-	}
+func (e *engineContext) UserQuery(render renderFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var params controlParam
+		if err := c.ShouldBindUri(&params); err != nil {
+			c.JSON(http.StatusBadRequest, "params get: failed")
+			return
+		}
 
-	// not using a transaction here because:
-	// 	since this is a single operation, so atomicity shouldn't matter
-	var user db.User
-	err := e.db.Get(&user, db.UserQuery, params.Control)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
-		return
-	}
+		// not using a transaction here because:
+		// 	since this is a single operation, so atomicity shouldn't matter
+		var user db.User
+		err := e.db.Get(&user, db.UserQuery, params.Control)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
+			return
+		}
 
-	// get calendar from API
-	scheduleWeek := api.MeScheduleWeekResp{}
-	err = e.api.Do(api.OauthReq{
-		OauthCode: user.Oauth,
-		Inner:     api.MeScheduleWeekReq{},
-	}, &scheduleWeek)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
-		return
+		// get calendar from API
+		//scheduleWeek := api.MeScheduleWeekResp{}
+		customCl := api.NewClient(e.o.Client(context.Background(), user.Token()), e.api.BaseURL())
+		evs, err := customCl.CourseEvents()
+		//	err = customCl.Do(api.MeScheduleWeekReq{}, &scheduleWeek)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
+			return
+		}
+		render(c, evs)
 	}
-	c.JSON(http.StatusOK, scheduleWeek)
 }
 
 // OauthRedirect verifies the OAuth response from the OAuth server.
 func (e *engineContext) OauthRedirect(c *gin.Context) {
 	storedState, err := oauthGetState(c.Request)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, "state get: failed")
+		c.String(http.StatusBadRequest, "state get: failed")
 		return
 	}
 	var params oauth.RedirectParams
 	if err := c.Bind(&params); err != nil {
-		c.JSON(http.StatusBadRequest, "params get: failed")
+		c.String(http.StatusBadRequest, "params get: failed")
 		return
 	}
-	code, err := e.o.Redirect(storedState, params)
+	err = e.o.CheckCode(storedState, params)
 	if err != nil {
-		c.JSON(http.StatusForbidden, fmt.Sprint(err))
+		c.String(http.StatusForbidden, fmt.Sprint(err))
+		return
+	}
+
+	tok, err := e.o.Auth(context.Background(), params.Code)
+	if err != nil {
+		c.String(http.StatusInternalServerError, fmt.Sprint(err))
+		return
+	}
+	if !tok.Valid() {
+		c.String(http.StatusInternalServerError, "invalid token")
 		return
 	}
 
 	txx, err := e.db.Beginx()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
+		c.String(http.StatusInternalServerError, fmt.Sprint(err))
 		return
 	}
+
 	control, err := util.GenRandom(128)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
+		c.String(http.StatusInternalServerError, fmt.Sprint(err))
 		return
 	}
-	user := db.User{Control: control, Oauth: code}
+	user := db.User{Control: control}
+	user.ApplyToken(tok)
 	_, err = txx.NamedExec(db.UserRegister, &user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
+		c.String(http.StatusInternalServerError, fmt.Sprint(err))
 		return
 	}
 	err = txx.Commit()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
+		c.String(http.StatusInternalServerError, fmt.Sprint(err))
 		return
 	}
 	c.String(http.StatusOK, user.Control)

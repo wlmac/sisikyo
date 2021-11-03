@@ -13,6 +13,7 @@ type Data interface {
 }
 
 var _ = [...]Data{
+	User{},
 	Timeframe{},
 	Ann{},
 	Course{},
@@ -21,6 +22,26 @@ var _ = [...]Data{
 	Org{},
 	Tag{},
 	Schedule{},
+}
+
+type User struct {
+	Username       Username      `json:"username"`
+	FirstName      string        `json:"first_name"`
+	LastName       string        `json:"last_name"`
+	Bio            string        `json:"bio"`
+	Timezone       string        `json:"timezone"`
+	GraduatingYear int           `json:"graduating_year"`
+	Organizations  []string      `json:"organizations"`
+	TagsFollowing  []interface{} `json:"tags_following"`
+}
+
+func (u User) Name() string {
+	return u.FirstName + " " + u.LastName
+}
+
+func (u User) URL(c *Client) *url.URL {
+	sub, _ := url.Parse(string(u.Username))
+	return c.BaseURL().ResolveReference(sub)
 }
 
 type Timeframe struct {

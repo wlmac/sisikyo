@@ -19,17 +19,4 @@ func (req UserReq) Req(c *Client) (*http.Request, error) {
 	return http.NewRequest(http.MethodGet, c.baseURL.ResolveReference(userURL).ResolveReference(username).String(), nil)
 }
 
-type UserResp struct {
-	Username       string        `json:"username"`
-	FirstName      string        `json:"first_name"`
-	LastName       string        `json:"last_name"`
-	Bio            string        `json:"bio"`
-	Timezone       string        `json:"timezone"`
-	GraduatingYear int           `json:"graduating_year"`
-	Organizations  []string      `json:"organizations"`
-	TagsFollowing  []interface{} `json:"tags_following"`
-}
-
-func (u UserResp) Name() string {
-	return u.FirstName + " " + u.LastName
-}
+type UserResp User

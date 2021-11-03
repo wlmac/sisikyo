@@ -5,7 +5,6 @@ import (
 	"embed"
 	"fmt"
 	"html/template"
-	"log"
 	"time"
 
 	ics "github.com/arran4/golang-ical"
@@ -41,7 +40,6 @@ func GetCal(tmpl *template.Template, resp api.EventsResp) (rendered string, err 
 			ev.SetStartAt(event.Start)
 			ev.SetEndAt(event.End)
 		}
-		log.Println("event", event)
 	}
 	rendered = cal.Serialize()
 	return

@@ -2,9 +2,9 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"sync"
@@ -59,7 +59,8 @@ func (c *Client) Do(req Req, v interface{}) (err error) {
 		}
 	}(resp.Body)
 	if resp.StatusCode >= 300 || resp.StatusCode < 200 {
-		return errors.New(resp.Status)
+		body, _ := ioutil.ReadAll(resp.Body)
+		return fmt.Errorf("%s: %s", resp.Status, body)
 	}
 	err = json.NewDecoder(resp.Body).Decode(v)
 	if err != nil {

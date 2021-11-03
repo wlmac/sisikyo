@@ -7,10 +7,9 @@ import (
 // CourseEvents generates Event s from the course schedule.
 //
 // TODO: use MeScheduleResp or MeTimetableResp to generate events for 2+ weeks.
-func (c *Client) CourseEvents(auth Auth) (evs []Event, err error) {
-	c.auth = auth
+func (c *Client) CourseEvents() (evs []Event, err error) {
 	resp := MeScheduleWeekResp{}
-	err = c.Do(MeScheduleWeekReq{Auth: c.auth}, &resp)
+	err = c.Do(MeScheduleWeekReq{}, &resp)
 	if err != nil {
 		return nil, fmt.Errorf("req: %w", err)
 	}
