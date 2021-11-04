@@ -56,15 +56,14 @@ func setupEngine(e *gin.Engine, cl *api.Client, o *oauth.Client, conn *sqlx.DB) 
 		c.Redirect(http.StatusPermanentRedirect, "https://gitlab.com/mirukakoro/sisikyo")
 	})
 
-	e.GET("/events/public.json", makeEventsResp(renderJSON, func(o ICSOptions) ([]api.Event, error) { return o.List(cl) }))
-	e.GET("/events/public.ics", makeEventsResp(renderICS, func(o ICSOptions) ([]api.Event, error) { return o.List(cl) }))
-
 	ec := engineContext{
 		e:   e,
 		api: cl,
 		o:   o,
 		db:  conn,
 	}
+	e.GET("/events/public.json", ec.PublicQuery(renderJSON))
+	e.GET("/events/public.ics", ec.PublicQuery(renderICS))
 	e.GET("/events/:control/private.json", ec.UserQuery(renderJSON))
 	e.GET("/events/:control/private.ics", ec.UserQuery(renderICS))
 	e.POST("/remove/:control", ec.UserRemove)

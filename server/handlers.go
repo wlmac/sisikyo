@@ -21,6 +21,26 @@ type engineContext struct { // yes, great naming
 	db  *sqlx.DB
 }
 
+func (e *engineContext) PublicQuery(render renderFunc) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		o := ICSOptions{}
+		err := c.ShouldBindQuery(&o)
+		if err != nil {
+			_ = c.AbortWithError(http.StatusBadRequest, err)
+			c.String(http.StatusBadRequest, fmt.Sprint(err))
+			return
+		}
+
+		evs, err := o.List(e.api)
+		if err != nil {
+			c.String(http.StatusInternalServerError, fmt.Sprintf("list: %s", err))
+			return
+		}
+
+		render(c, evs)
+	}
+}
+
 // controlParam is a param binding for Gin.
 type controlParam struct {
 	Control string `uri:"control" binding:"required"`
