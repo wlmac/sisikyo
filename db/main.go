@@ -11,23 +11,23 @@ import (
 const Schema = UserSchema
 
 const UserRemove = `
-DELETE FROM user WHERE control = :control;
+DELETE FROM user_table WHERE control = :control;
 `
 
 const UserRegister = `
-INSERT INTO user
+INSERT INTO user_table
 (control, access_token, refresh_token, token_type, expiry)
 VALUES
 (:control, :access_token, :refresh_token, :token_type, :expiry);
 `
 
 const UserQuery = `
-SELECT * FROM user WHERE control = :control;
+SELECT * FROM user_table WHERE control = :control;
 `
 
 // UserSchema is the SQL schema of User.
 const UserSchema = `
-CREATE TABLE IF NOT EXISTS user (
+CREATE TABLE IF NOT EXISTS user_table (
 	control varchar(128) NOT NULL PRIMARY KEY,
 	access_token text NOT NULL,
 	refresh_token text NOT NULL,
