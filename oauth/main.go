@@ -1,6 +1,6 @@
 package oauth
 
-// TODO: use golang.org/x/oauth2
+// TOOD: properly revoke token on UserRemove
 
 import (
 	"context"
