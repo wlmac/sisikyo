@@ -15,10 +15,10 @@ import (
 
 // engineContext contains the context required for the server methods
 type engineContext struct { // yes, great naming
-	e   *gin.Engine
-	api *api.Client
-	o   *oauth.Client
-	db  *sqlx.DB
+	E   *gin.Engine
+	API *api.Client
+	O   *oauth.Client
+	Db  *sqlx.DB
 }
 
 func (e *engineContext) PublicQuery(render renderFunc) gin.HandlerFunc {
@@ -31,7 +31,7 @@ func (e *engineContext) PublicQuery(render renderFunc) gin.HandlerFunc {
 			return
 		}
 
-		evs, err := o.List(e.api)
+		evs, err := o.List(e.API)
 		if err != nil {
 			c.String(http.StatusInternalServerError, fmt.Sprintf("list: %s", err))
 			return
@@ -53,7 +53,7 @@ func (e *engineContext) UserRemove(c *gin.Context) {
 		return
 	}
 
-	txx, err := e.db.Beginx()
+	txx, err := e.Db.Beginx()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
 		return
@@ -82,7 +82,7 @@ func (e *engineContext) UserQuery(render renderFunc) gin.HandlerFunc {
 		// not using a transaction here because:
 		// 	since this is a single operation, so atomicity shouldn't matter
 		var user db.User
-		err := e.db.Get(&user, db.UserQuery, params.Control)
+		err := e.Db.Get(&user, db.UserQuery, params.Control)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
 			return
@@ -90,7 +90,7 @@ func (e *engineContext) UserQuery(render renderFunc) gin.HandlerFunc {
 
 		// get calendar from API
 		//scheduleWeek := api.MeScheduleWeekResp{}
-		customCl := api.NewClient(e.o.Client(context.Background(), user.Token()), e.api.BaseURL())
+		customCl := api.NewClient(e.O.Client(context.Background(), user.Token()), e.API.BaseURL())
 		evs, err := customCl.CourseEvents()
 		//	err = customCl.Do(api.MeScheduleWeekReq{}, &scheduleWeek)
 		if err != nil {
@@ -113,13 +113,13 @@ func (e *engineContext) OauthRedirect(c *gin.Context) {
 		c.String(http.StatusBadRequest, "params get: failed")
 		return
 	}
-	err = e.o.CheckCode(storedState, params)
+	err = e.O.CheckCode(storedState, params)
 	if err != nil {
 		c.String(http.StatusForbidden, fmt.Sprint(err))
 		return
 	}
 
-	tok, err := e.o.Auth(context.Background(), params.Code)
+	tok, err := e.O.Auth(context.Background(), params.Code)
 	if err != nil {
 		c.String(http.StatusInternalServerError, fmt.Sprint(err))
 		return
@@ -129,7 +129,7 @@ func (e *engineContext) OauthRedirect(c *gin.Context) {
 		return
 	}
 
-	txx, err := e.db.Beginx()
+	txx, err := e.Db.Beginx()
 	if err != nil {
 		c.String(http.StatusInternalServerError, fmt.Sprint(err))
 		return
@@ -157,7 +157,7 @@ func (e *engineContext) OauthRedirect(c *gin.Context) {
 
 // OauthAuthorize redirects the user to the OAuth server to authorize this OAuth client.
 func (e *engineContext) OauthAuthorize(c *gin.Context) {
-	state, url, err := e.o.AuthorizeURL()
+	state, url, err := e.O.AuthorizeURL()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return

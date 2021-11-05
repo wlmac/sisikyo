@@ -31,7 +31,10 @@ func Main() error {
 	if err != nil {
 		return fmt.Errorf("oauth: %w", err)
 	}
-	oCl := oauth.NewClient(*oCfg)
+	var oCl *oauth.Client
+	if oCfg != nil {
+		oCl = oauth.NewClient(*oCfg)
+	}
 	e := gin.Default()
 	setupEngine(e, cl, oCl, conn)
 	return e.Run(addr)

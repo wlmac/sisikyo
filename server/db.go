@@ -23,6 +23,9 @@ func init() {
 }
 
 func setupDb() (*sqlx.DB, error) {
+	if driverName == "" {
+		return nil, nil
+	}
 	conn, err := sqlx.Connect(driverName, dataSourceName)
 	if err != nil {
 		return nil, fmt.Errorf("conn: %w", err)

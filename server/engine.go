@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"html/template"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,25 +13,6 @@ import (
 )
 
 type renderFunc func(c *gin.Context, evs []api.Event)
-
-func makeEventsResp(render renderFunc, f func(o ICSOptions) ([]api.Event, error)) func(c *gin.Context) {
-	return func(c *gin.Context) {
-		o := ICSOptions{}
-		err := c.ShouldBindQuery(&o)
-		if err != nil {
-			_ = c.AbortWithError(http.StatusBadRequest, err)
-			return
-		}
-
-		evs, err := f(o)
-		if err != nil {
-			_ = c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("list: %w", err))
-			return
-		}
-
-		render(c, evs)
-	}
-}
 
 func renderICS(c *gin.Context, evs []api.Event) {
 	cal, err := ics.GetCal(ics.Tmpl, evs)
@@ -45,27 +27,42 @@ func renderJSON(c *gin.Context, evs []api.Event) {
 	c.JSON(http.StatusOK, evs)
 }
 
+func (ec *engineContext) renderHTML(name string) func(c *gin.Context, evs []api.Event) {
+	return func(c *gin.Context, evs []api.Event) {
+		c.HTML(http.StatusOK, "evs.html", gin.H{
+			"name": name,
+			"ec":   ec,
+			"evs":  evs,
+		})
+	}
+}
+
 func setupEngine(e *gin.Engine, cl *api.Client, o *oauth.Client, conn *sqlx.DB) {
-	indexOutput := index()
-	e.GET("/", func(c *gin.Context) {
-		c.Header("Content-Type", "text/markdown")
-		c.String(http.StatusOK, "%s", indexOutput)
+	e.SetFuncMap(template.FuncMap{
+		"licenseBrief": func() string { return licenseBrief },
 	})
-	e.GET("/license", func(c *gin.Context) { c.String(http.StatusOK, "%s", licenseFull) })
+
+	ec := engineContext{E: e, API: cl, O: o, Db: conn}
+	indexOutput := index()
+	e.GET("/license", func(c *gin.Context) {
+		c.String(http.StatusOK, "%s", licenseFull)
+	})
 	e.GET("/src", func(c *gin.Context) {
 		c.Redirect(http.StatusPermanentRedirect, "https://gitlab.com/mirukakoro/sisikyo")
 	})
-
-	ec := engineContext{
-		e:   e,
-		api: cl,
-		o:   o,
-		db:  conn,
-	}
+	e.LoadHTMLGlob("../tmpls/*.html")
+	e.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", gin.H{
+			"index": indexOutput,
+			"ec":    ec,
+		})
+	})
 	e.GET("/events/public.json", ec.PublicQuery(renderJSON))
 	e.GET("/events/public.ics", ec.PublicQuery(renderICS))
+	e.GET("/events/public.html", ec.PublicQuery(ec.renderHTML("public")))
 	e.GET("/events/:control/private.json", ec.UserQuery(renderJSON))
 	e.GET("/events/:control/private.ics", ec.UserQuery(renderICS))
+	e.GET("/events/:control/private.html", ec.UserQuery(ec.renderHTML("private")))
 	e.POST("/remove/:control", ec.UserRemove)
 	e.GET("/o/redirect", ec.OauthRedirect)
 	e.GET("/o/authorize", ec.OauthAuthorize)

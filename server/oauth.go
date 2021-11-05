@@ -24,6 +24,9 @@ func init() {
 }
 
 func setupOauth() (*oauth2.Config, error) {
+	if oauthBaseURL == "" {
+		return nil, nil
+	}
 	baseURL, err := url.Parse(oauthBaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("oauth url: %w", err)

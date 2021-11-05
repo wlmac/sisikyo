@@ -177,20 +177,20 @@ func (e Event) PerDay() bool {
 // Model:core.models.organization.Org
 // Serializer: core.api.serializers.organization.OrganizationSerializer
 type Org struct {
-	Id          int           `json:"id"`
-	Owner       interface{}   `json:"owner"`
-	Supervisors []interface{} `json:"supervisors"`
-	Execs       []interface{} `json:"execs"`
-	Tags        []Tag         `json:"tags"`
-	Name        OrgName       `json:"name"`
-	Bio         string        `json:"bio"`
-	Extra       string        `json:"extra_content"`
-	Slug        OrgSlug       `json:"slug"`
-	Registered  time.Time     `json:"registered_date"`
-	Open        bool          `json:"is_open"`
-	AppsOpen    bool          `json:"applications_open"`
-	Banner      string        `json:"banner"`
-	Icon        string        `json:"icon"`
+	Id          int       `json:"id"`
+	Owner       User      `json:"owner"`
+	Supervisors []User    `json:"supervisors"`
+	Execs       []User    `json:"execs"`
+	Tags        []Tag     `json:"tags"`
+	Name        OrgName   `json:"name"`
+	Bio         string    `json:"bio"`
+	Extra       string    `json:"extra_content"`
+	Slug        OrgSlug   `json:"slug"`
+	Registered  time.Time `json:"registered_date"`
+	Open        bool      `json:"is_open"`
+	AppsOpen    bool      `json:"applications_open"`
+	Banner      string    `json:"banner"`
+	Icon        string    `json:"icon"`
 }
 
 var orgBaseURL, _ = url.Parse("/club/")
@@ -198,6 +198,11 @@ var orgBaseURL, _ = url.Parse("/club/")
 func (o Org) URL(c *Client) *url.URL {
 	slug, _ := url.Parse(url.PathEscape(string(o.Slug)))
 	return c.baseURL.ResolveReference(orgBaseURL).ResolveReference(slug)
+}
+
+func (o Org) IconURL(c *Client) *url.URL {
+	iconURL, _ := url.Parse(o.Icon)
+	return c.baseURL.ResolveReference(iconURL)
 }
 
 // Tag represents a single tag from the API.
