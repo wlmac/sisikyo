@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<!--
+		<meta name="keywords" content="HTML, CSS, JavaScript">
+		<meta name="description" content="">
+		-->
+		<meta name="author" content="Ken Shibata">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>{{block "title" .}}{{end}}</title>
+		<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+	</head>
+	<body class="w3-mobile">
+		<header>
+			<h1>{{block "head" .}}{{end}}</h1>
+		</header>
+		{{block "body" .}}{{end}}
+		<footer class="w3-card w3-margin w3-padding">
+			<pre>{{licenseBrief}}</pre>
+		</footer>
+	</body>
+</html>
+

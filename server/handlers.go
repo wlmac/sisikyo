@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/foolin/goview"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"gitlab.com/mirukakoro/sisikyo/db"
@@ -19,6 +20,40 @@ type engineContext struct { // yes, great naming
 	API *api.Client
 	O   *oauth.Client
 	Db  *sqlx.DB
+}
+
+func (e *engineContext) userRemove(params controlParam) error {
+	txx, err := e.Db.Beginx()
+	if err != nil {
+		return err
+	}
+	_, err = txx.NamedExec(db.UserRemove, params)
+	if err != nil {
+		return err
+	}
+	err = txx.Commit()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type removeForm struct {
+	Control string `form:"control" binding:"required"`
+}
+
+func (e *engineContext) Remove(c *gin.Context) {
+	var form removeForm
+	if err := c.Bind(&form); err != nil {
+		c.String(http.StatusBadRequest, "%s", err)
+		return
+	}
+	if err := e.userRemove(controlParam{Control: form.Control}); err != nil {
+		c.String(http.StatusInternalServerError, "%s", err)
+		return
+	}
+	tmplRender(http.StatusOK, "removed", goview.M{})(c)
+	return
 }
 
 func (e *engineContext) PublicQuery(render renderFunc) gin.HandlerFunc {
@@ -52,20 +87,8 @@ func (e *engineContext) UserRemove(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, "params get: failed")
 		return
 	}
-
-	txx, err := e.Db.Beginx()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
-		return
-	}
-	_, err = txx.NamedExec(db.UserRemove, params)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
-		return
-	}
-	err = txx.Commit()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
+	if err := e.userRemove(params); err != nil {
+		c.JSON(http.StatusBadRequest, fmt.Sprint(err))
 		return
 	}
 	c.Status(http.StatusOK)
@@ -153,18 +176,22 @@ func (e *engineContext) OauthRedirect(c *gin.Context) {
 		c.String(http.StatusInternalServerError, fmt.Sprint(err))
 		return
 	}
-	c.HTML(http.StatusOK, "registered.html", gin.H{"control": user.Control})
+	tmplRender(http.StatusOK, "registered", goview.M{"control": user.Control})(c)
 }
 
-// OauthAuthorize redirects the user to the OAuth server to authorize this OAuth client.
-func (e *engineContext) OauthAuthorize(c *gin.Context) {
+func (e *engineContext) oauthAuthorize(c *gin.Context) (url string) {
 	state, url, err := e.O.AuthorizeURL()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
 	oauthSetState(c, state)
-	c.String(http.StatusOK, url)
+	return
+}
+
+// OauthAuthorize redirects the user to the OAuth server to authorize this OAuth client.
+func (e *engineContext) OauthAuthorize(c *gin.Context) {
+	c.String(http.StatusOK, e.oauthAuthorize(c))
 }
 
 // oauthStateName is the name of the cookie to store the OAuth state.

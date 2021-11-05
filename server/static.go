@@ -17,6 +17,9 @@ func index() string {
 	return licenseBrief + "\n\n" + debugInfo()
 }
 
+//go:embed license-brief.html
+var licenseBriefHTML string
+
 const licenseBrief = `This program, Sisikyo, is a program that provides utilities for an API.
 
 Copyright 2021 Ken Shibata
