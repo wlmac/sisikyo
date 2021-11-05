@@ -44,6 +44,9 @@ func setupEngine(e *gin.Engine, cl *api.Client, o *oauth.Client, conn *sqlx.DB) 
 
 	ec := engineContext{E: e, API: cl, O: o, Db: conn}
 	indexOutput := index()
+	e.GET("/", func(c *gin.Context) {
+		c.String(http.StatusOK, "%s", licenseBrief+"\n\n"+indexOutput)
+	})
 	e.GET("/license", func(c *gin.Context) {
 		c.String(http.StatusOK, "%s", licenseFull)
 	})
@@ -51,19 +54,13 @@ func setupEngine(e *gin.Engine, cl *api.Client, o *oauth.Client, conn *sqlx.DB) 
 		c.Redirect(http.StatusPermanentRedirect, "https://gitlab.com/mirukakoro/sisikyo")
 	})
 	e.LoadHTMLGlob("../tmpls/*.html")
-	e.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "index.html", gin.H{
-			"index": indexOutput,
-			"ec":    ec,
-		})
-	})
 	e.GET("/events/public.json", ec.PublicQuery(renderJSON))
 	e.GET("/events/public.ics", ec.PublicQuery(renderICS))
 	e.GET("/events/public.html", ec.PublicQuery(ec.renderHTML("public")))
 	e.GET("/events/:control/private.json", ec.UserQuery(renderJSON))
 	e.GET("/events/:control/private.ics", ec.UserQuery(renderICS))
 	e.GET("/events/:control/private.html", ec.UserQuery(ec.renderHTML("private")))
-	e.POST("/remove/:control", ec.UserRemove)
+	e.GET("/remove/:control", ec.UserRemove) // TODO: add a HTML form and replace this with a POST request
 	e.GET("/o/redirect", ec.OauthRedirect)
 	e.GET("/o/authorize", ec.OauthAuthorize)
 }

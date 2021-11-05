@@ -1,4 +1,3 @@
-{{template "base.html" .}}
 {{define "title"}}
 {{if eq .name "public"}}Public{{else if eq .name "private"}}Private{{end}}
 Events
@@ -57,3 +56,4 @@ Events
 </article>
 {{end}}
 {{end}}
+{{template "base.html" .}}

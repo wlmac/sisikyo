@@ -17,10 +17,7 @@ func index() string {
 	return licenseBrief + "\n\n" + debugInfo()
 }
 
-const licenseBrief = `※下記の原文と此の翻訳との間で矛盾がある場合、原文の意味を使います。
-此のプログラム「ししきょう」は特定のAPIのツールです。
-
-This program, Sisikyo, is a program that provides utilities for an API.
+const licenseBrief = `This program, Sisikyo, is a program that provides utilities for an API.
 
 Copyright 2021 Ken Shibata
 
