@@ -7,8 +7,7 @@ import (
 )
 
 // APIVersion is the API version this library is compatible with.
-// TODO: fix for SSO: const APIVersion = "v3.2.0"
-const APIVersion = "v3.1.0"
+const APIVersion = "v3.2.0"
 
 func init() {
 	if !semver.IsValid(APIVersion) {
