@@ -171,15 +171,22 @@ const oauthStateName = "oauth-state" // set __Host- prefix only if secure
 
 // oauthSetState sets a Set-Cookie header to set a state cookie.
 func oauthSetState(c *gin.Context, state string) {
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:  oauthStateName,
-		Value: state,
-		//		Path:     "/o",
-		//		MaxAge:   60, // 1 minute
-		//		Secure:   true,
-		//		SameSite: http.SameSiteStrictMode,
-		SameSite: http.SameSiteLaxMode,
-	})
+	if gin.Mode() == "debug" {
+		http.SetCookie(c.Writer, &http.Cookie{
+			Name:     oauthStateName,
+			Value:    state,
+			SameSite: http.SameSiteLaxMode,
+		})
+	} else {
+		http.SetCookie(c.Writer, &http.Cookie{
+			Name:     oauthStateName,
+			Value:    state,
+			Path:     "/o",
+			MaxAge:   60, // 1 minute
+			Secure:   true,
+			SameSite: http.SameSiteStrictMode,
+		})
+	}
 }
 
 // oauthGetState gets the state stored in the cookie.
