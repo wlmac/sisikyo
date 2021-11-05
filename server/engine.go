@@ -96,9 +96,13 @@ func setupEngine(e *gin.Engine, cl *api.Client, o *oauth.Client, conn *sqlx.DB) 
 			"url":   ec.oauthAuthorize(c),
 		})(c)
 	})
-	e.GET("/remove", tmplRender(http.StatusOK, "remove", goview.M{}))
-	e.POST("/remove", ec.Remove)
-	e.GET("/about", tmplRender(http.StatusOK, "about", goview.M{}))
+	//e.GET("/remove", tmplRender(http.StatusOK, "remove", goview.M{
+	//	"title": "Remove",
+	//}))
+	//e.POST("/remove", ec.Remove)
+	e.GET("/about", tmplRender(http.StatusOK, "about", goview.M{
+		"title": "About",
+	}))
 	e.GET("/license", func(c *gin.Context) {
 		c.String(http.StatusOK, "%s", licenseFull)
 	})

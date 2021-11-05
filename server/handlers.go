@@ -176,7 +176,10 @@ func (e *engineContext) OauthRedirect(c *gin.Context) {
 		c.String(http.StatusInternalServerError, fmt.Sprint(err))
 		return
 	}
-	tmplRender(http.StatusOK, "registered", goview.M{"control": user.Control})(c)
+	tmplRender(http.StatusOK, "registered", goview.M{
+		"title":   "Registered",
+		"control": user.Control,
+	})(c)
 }
 
 func (e *engineContext) oauthAuthorize(c *gin.Context) (url string) {

@@ -4,7 +4,7 @@ Removed
 {{define "body"}}
 {{$card := "w3-card w3-margin w3-padding w3-round"}}
 <div class="{{$card}}">
-	Your registration has been removed.
+	Your registration has been removed if it was present.
 	Our <strong>logs</strong> may still have information about you such as:
 	<ul>
 		<li>your IP address</li>
