@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
+	"github.com/Masterminds/sprig"
 	"github.com/foolin/goview"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -53,15 +54,16 @@ func setupEngine(e *gin.Engine, cl *api.Client, o *oauth.Client, conn *sqlx.DB) 
 		"licenseBrief": func() string { return licenseBrief },
 	})
 
+	funcMap := sprig.FuncMap()
+	funcMap["licenseBrief"] = func() string { return licenseBrief }
+	funcMap["licenseBriefHTML"] = func() template.HTML { return template.HTML(licenseBriefHTML) }
+
 	gv := goview.New(goview.Config{
-		Root:      "server/views",
-		Extension: ".tpl",
-		Master:    "/layouts/base",
-		Partials:  []string{"/partials/links"},
-		Funcs: template.FuncMap{
-			"licenseBrief":     func() string { return licenseBrief },
-			"licenseBriefHTML": func() template.HTML { return template.HTML(licenseBriefHTML) },
-		},
+		Root:         "server/views",
+		Extension:    ".tpl",
+		Master:       "/layouts/base",
+		Partials:     []string{"/partials/links"},
+		Funcs:        funcMap,
 		DisableCache: gin.Mode() == "debug",
 	})
 
@@ -96,10 +98,10 @@ func setupEngine(e *gin.Engine, cl *api.Client, o *oauth.Client, conn *sqlx.DB) 
 			"url":   ec.oauthAuthorize(c),
 		})(c)
 	})
-	//e.GET("/remove", tmplRender(http.StatusOK, "remove", goview.M{
-	//	"title": "Remove",
-	//}))
-	//e.POST("/remove", ec.Remove)
+	e.GET("/remove", tmplRender(http.StatusOK, "remove", goview.M{
+		"title": "Remove",
+	}))
+	e.POST("/remove", ec.Remove)
 	e.GET("/about", tmplRender(http.StatusOK, "about", goview.M{
 		"title": "About",
 	}))
@@ -109,7 +111,6 @@ func setupEngine(e *gin.Engine, cl *api.Client, o *oauth.Client, conn *sqlx.DB) 
 	e.GET("/src", func(c *gin.Context) {
 		c.Redirect(http.StatusPermanentRedirect, "https://gitlab.com/mirukakoro/sisikyo")
 	})
-	e.LoadHTMLGlob("server/tmpls/*.html")
 	e.GET("/events/public.json", ec.PublicQuery(renderJSON))
 	e.GET("/events/public.ics", ec.PublicQuery(renderICS))
 	e.GET("/events/public.html", ec.PublicQuery(ec.renderHTML("Public")))

@@ -2,8 +2,11 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/foolin/goview"
 	"github.com/gin-gonic/gin"
@@ -39,20 +42,50 @@ func (e *engineContext) userRemove(params controlParam) error {
 }
 
 type removeForm struct {
-	Control string `form:"control" binding:"required"`
+	Url     string `form:"url"`
+	Control string `form:"control"`
+}
+
+func (r *removeForm) getControl() (string, error) {
+	if r.Control == "" && r.Url == "" {
+		return "", errors.New("either control or url must be filled")
+	}
+	if r.Control != "" {
+		return r.Control, nil
+	}
+	u, err := url.Parse(r.Url)
+	if err != nil {
+		return "", err
+	}
+	if !u.IsAbs() {
+		return "", errors.New("url must be absolute")
+	}
+	if !strings.HasPrefix(u.Path, "/events/") || !strings.HasSuffix(strings.Split(u.Path, ".")[0], "/private") {
+		return "", errors.New("url does not have expected format")
+	}
+	return strings.TrimSuffix(strings.Split(strings.TrimPrefix(u.Path, "/events/"), ".")[0], "/private"), nil
 }
 
 func (e *engineContext) Remove(c *gin.Context) {
+	var err error
 	var form removeForm
-	if err := c.Bind(&form); err != nil {
+	if err = c.Bind(&form); err != nil {
 		c.String(http.StatusBadRequest, "%s", err)
 		return
 	}
-	if err := e.userRemove(controlParam{Control: form.Control}); err != nil {
+	var control string
+	if control, err = form.getControl(); err != nil {
+		c.String(http.StatusBadRequest, "%s", err)
+		return
+	}
+	if err = e.userRemove(controlParam{Control: control}); err != nil {
 		c.String(http.StatusInternalServerError, "%s", err)
 		return
 	}
-	tmplRender(http.StatusOK, "removed", goview.M{})(c)
+	tmplRender(http.StatusOK, "removed", goview.M{
+		"title":   "Removed If Present",
+		"control": control,
+	})(c)
 	return
 }
 
@@ -128,52 +161,87 @@ func (e *engineContext) UserQuery(render renderFunc) gin.HandlerFunc {
 func (e *engineContext) OauthRedirect(c *gin.Context) {
 	storedState, err := oauthGetState(c.Request)
 	if err != nil {
-		c.String(http.StatusBadRequest, "state get: failed")
+		tmplRender(http.StatusBadRequest, "register-err", goview.M{
+			"title": "Registration Failed",
+			"desc":  "An invalid request to register was detected: failed to get the state from your cookies.",
+			"err":   errors.New("state get: failed"),
+		})(c)
 		return
 	}
 	oauthClearState(c)
 	var params oauth.RedirectParams
 	if err := c.Bind(&params); err != nil {
-		c.String(http.StatusBadRequest, "params get: failed")
+		tmplRender(http.StatusBadRequest, "register-err", goview.M{
+			"title": "Registration Failed",
+			"desc":  "An invalid request to register was detected: failed to get the URL parameters.",
+			"err":   errors.New("params get: failed"),
+		})(c)
 		return
 	}
 	err = e.O.CheckCode(storedState, params)
 	if err != nil {
-		c.String(http.StatusForbidden, fmt.Sprint(err))
+		tmplRender(http.StatusForbidden, "register-err", goview.M{
+			"title": "Registration Failed",
+			"desc":  "Stored state and state from URL params did not match.",
+			"err":   err,
+		})(c)
 		return
 	}
 
 	tok, err := e.O.Auth(context.Background(), params.Code)
 	if err != nil {
-		c.String(http.StatusInternalServerError, fmt.Sprint(err))
+		tmplRender(http.StatusInternalServerError, "register-err", goview.M{
+			"title": "Registration Failed",
+			"desc":  "OAuth exchange failed for some reason (see below):",
+			"err":   err,
+		})(c)
 		return
 	}
 	if !tok.Valid() {
-		c.String(http.StatusInternalServerError, "invalid token")
+		tmplRender(http.StatusInternalServerError, "register-err", goview.M{
+			"title": "Registration Failed",
+			"desc":  "OAuth token is invalid.",
+		})(c)
 		return
 	}
 
 	txx, err := e.Db.Beginx()
 	if err != nil {
-		c.String(http.StatusInternalServerError, fmt.Sprint(err))
+		tmplRender(http.StatusInternalServerError, "register-err", goview.M{
+			"title": "Registration Failed",
+			"desc":  "Connection attempt to database failed.",
+			"err":   err,
+		})(c)
 		return
 	}
 
 	control, err := util.GenRandom(128)
 	if err != nil {
-		c.String(http.StatusInternalServerError, fmt.Sprint(err))
+		tmplRender(http.StatusInternalServerError, "register-err", goview.M{
+			"title": "Registration Failed",
+			"desc":  "Generation of random values for the control key failed.",
+			"err":   err,
+		})(c)
 		return
 	}
 	user := db.User{Control: control}
 	user.ApplyToken(tok)
 	_, err = txx.NamedExec(db.UserRegister, &user)
 	if err != nil {
-		c.String(http.StatusInternalServerError, fmt.Sprint(err))
+		tmplRender(http.StatusInternalServerError, "register-err", goview.M{
+			"title": "Registration Failed",
+			"desc":  "Insertion into the database failed.",
+			"err":   err,
+		})(c)
 		return
 	}
 	err = txx.Commit()
 	if err != nil {
-		c.String(http.StatusInternalServerError, fmt.Sprint(err))
+		tmplRender(http.StatusOK, "register-err", goview.M{
+			"title": "Registration Failed",
+			"desc":  "Committing changes to the database failed.",
+			"err":   err,
+		})(c)
 		return
 	}
 	tmplRender(http.StatusOK, "registered", goview.M{
@@ -195,62 +263,4 @@ func (e *engineContext) oauthAuthorize(c *gin.Context) (url string) {
 // OauthAuthorize redirects the user to the OAuth server to authorize this OAuth client.
 func (e *engineContext) OauthAuthorize(c *gin.Context) {
 	c.String(http.StatusOK, e.oauthAuthorize(c))
-}
-
-// oauthStateName is the name of the cookie to store the OAuth state.
-const oauthStateName = "oauth-state" // set __Host- prefix only if secure
-
-// oauthClearState sets a Set-Cookie header to set a state cookie.
-func oauthClearState(c *gin.Context) {
-	// why not use `Max-Age: 0`?
-	// 	see <https://www.rfc-editor.org/errata/eid3430> which is part of <https://stackoverflow.com/a/20320610>
-	if gin.Mode() == "debug" {
-		http.SetCookie(c.Writer, &http.Cookie{
-			Name:     oauthStateName,
-			Value:    "",
-			Path:     "/o",
-			MaxAge:   1, // 1 second
-			SameSite: http.SameSiteLaxMode,
-		})
-	} else {
-		http.SetCookie(c.Writer, &http.Cookie{
-			Name:     oauthStateName,
-			Value:    "",
-			Path:     "/o",
-			MaxAge:   1, // 1 second
-			Secure:   true,
-			SameSite: http.SameSiteStrictMode,
-		})
-	}
-}
-
-// oauthSetState sets a Set-Cookie header to set a state cookie.
-func oauthSetState(c *gin.Context, state string) {
-	if gin.Mode() == "debug" {
-		http.SetCookie(c.Writer, &http.Cookie{
-			Name:     oauthStateName,
-			Value:    state,
-			Path:     "/o",
-			SameSite: http.SameSiteLaxMode,
-		})
-	} else {
-		http.SetCookie(c.Writer, &http.Cookie{
-			Name:     oauthStateName,
-			Value:    state,
-			Path:     "/o",
-			MaxAge:   60, // 1 minute
-			Secure:   true,
-			SameSite: http.SameSiteStrictMode,
-		})
-	}
-}
-
-// oauthGetState gets the state stored in the cookie.
-func oauthGetState(resp *http.Request) (state string, err error) {
-	cookie, err := resp.Cookie(oauthStateName)
-	if err != nil {
-		return
-	}
-	state = cookie.Value
-	return
 }

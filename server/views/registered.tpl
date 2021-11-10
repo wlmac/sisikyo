@@ -1,7 +1,7 @@
-{{define "head"}}Registered{{end}}
+{{define "title"}}Registered{{end}}
 {{define "body"}}
 {{$card := "w3-card w3-margin w3-padding w3-round"}}
-<div class="{{$card}}">
+<div class="{{$card}} w3-half">
 	<h2>Add Events to Google Calendar</h2>
 	Follow
 	<a href="https://support.google.com/calendar/answer/37100?hl=en#:~:text=Use%20a%20link%20to%20add%20a%20public%20calendar">
@@ -13,5 +13,5 @@
 		<li><a href="/events/public.ics">Link for Public Events</a></li>
 	</ul>
 </div>
-{{template "links" .}}
+{{template "links" (dict "control" .control "class" "w3-half")}}
 {{end}}

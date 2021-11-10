@@ -1,3 +1,3 @@
-<footer class="w3-padding">
+<footer class="w3-margin">
 	{{licenseBriefHTML}}
 </footer>

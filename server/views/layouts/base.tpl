@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html>
-        {{include "layouts/head"}}
-	<body class="w3-mobile">
+	<head>
+	        {{include "layouts/head"}}
+		{{block "head" .}}{{end}}
+	</head>
+	<body>
         	{{include "layouts/header"}}
 		{{block "body" .}}{{end}}
         	{{include "layouts/footer"}}
