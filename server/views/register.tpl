@@ -10,6 +10,7 @@ Register
 	<h2>Redirecting</h2>
 	<p>You will be redirected to the authorization page in 0 second(s).</p>
 	<p>If you are not, please go to <a href="{{.url}}">the authorization page</a>.</p>
+	<p>Note: you must complete the registration in under 60 seconds (the state cookie is set to expire in 60 seconds)</p>
 </div>
 <div class="{{$card}}">
 	<h2>Instructions</h2>

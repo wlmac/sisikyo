@@ -25,6 +25,7 @@ type HTTPClient interface {
 
 type Req interface {
 	Req(c *Client) (*http.Request, error)
+	//	Compat(version string) bool
 }
 
 var Reqs = [...]Req{
