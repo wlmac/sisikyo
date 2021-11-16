@@ -33,13 +33,17 @@
 		</p>
 	</div>
 	<div class="w3-quarter">
-		<h3>Etc</h3>
+		<h3>Other</h3>
 		ID: {{$ev.Id}}
 		<br/>
+		{{with $_ := $ev.Org.Icon}}
 		Org: <a href="{{($ev.Org.URL $ec.API).String}}">
 			<img class="w3-circle" height="15rem" src="{{($ev.Org.IconURL $ec.API).String}}"/>
 			{{$ev.Org.Name}}
 		</a>
+		{{else}}
+		Org: Unknown
+		{{end}}
 		<br/>
 		Public: {{if $ev.Public}}Yes{{else}}No{{end}}
 		<br/>

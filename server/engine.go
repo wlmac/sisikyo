@@ -79,6 +79,8 @@ func (ec *engineContext) setupIndex() {
 	buildInfo, _ := debug.ReadBuildInfo()
 	ec.E.GET("/", cache.CachePage(ec.Store, time.Minute, tmplRender(http.StatusOK, "index", goview.M{
 		"title":        "Sisikyō",
+		"keywords":     []string{"Metropolis", "organization"},
+		"desc":         "Sisikyō allows you to put Metropolis calendars into calendar clients.",
 		"index":        indexOutput,
 		"apiURL":       apiURL,
 		"oauthBaseURL": oauthBaseURL,
