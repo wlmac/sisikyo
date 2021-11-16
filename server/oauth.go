@@ -19,8 +19,8 @@ func init() {
 	flag.StringVar(&oauthBaseURL, "o-url", "", "oauth: absolute base URL")
 	flag.StringVar(&oauthAuthURL, "o-auth", "authorize", "oauth: relative auth URL")
 	flag.StringVar(&oauthTokenURL, "o-token", "token", "oauth: relative redirect URL")
-	flag.StringVar(&oauthClientID, "o-id", "", "oauth: client ID")
-	flag.StringVar(&oauthClientSecret, "o-secret", "", "oauth: client secret")
+	flag.StringVar(&oauthClientID, "o-id", "changeme", "oauth: client ID")
+	flag.StringVar(&oauthClientSecret, "o-secret", "changeme", "oauth: client secret")
 }
 
 func setupOauth() (*oauth2.Config, error) {
