@@ -3,10 +3,6 @@ Sisikyō
 {{end}}
 {{define "body"}}
 {{$card := "w3-card w3-margin w3-padding w3-round"}}
-<div class="{{$card}}" id="license">
-	<h2>License Information</h2>
-	{{licenseBriefHTML}}
-</div>
 {{template "links" .}}
 <div class="{{$card}}" id="debug">
 	<h2>Debug Info</h2>
