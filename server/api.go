@@ -39,7 +39,7 @@ func setupAPI() (*api.Client, error) {
 	if ok {
 		log.Printf("api version: compatible with server (version: %s)", ver)
 	} else {
-		return nil, fmt.Errorf("api version: incompatible with server (version: %s)", ver)
+		log.Printf("api version: incompatible with server (version: %s)", ver)
 	}
 	return cl, nil
 }
