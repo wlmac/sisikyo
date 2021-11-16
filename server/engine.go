@@ -5,6 +5,10 @@ import (
 	"html/template"
 	"net/http"
 	"runtime/debug"
+	"time"
+
+	"github.com/gin-contrib/cache"
+	"github.com/gin-contrib/cache/persistence"
 
 	"github.com/Masterminds/sprig"
 	"github.com/foolin/goview"
@@ -49,11 +53,11 @@ func tmplRender(status int, name string, m goview.M) gin.HandlerFunc {
 	}
 }
 
-func setupEngine(e *gin.Engine, cl *api.Client, o *oauth.Client, conn *sqlx.DB) {
-	e.SetFuncMap(template.FuncMap{
-		"licenseBrief": func() string { return licenseBrief },
-	})
+func setupCache(timeout time.Duration) *persistence.InMemoryStore {
+	return persistence.NewInMemoryStore(time.Second)
+}
 
+func setupViews() {
 	funcMap := sprig.FuncMap()
 	funcMap["licenseBrief"] = func() string { return licenseBrief }
 	funcMap["licenseBriefHTML"] = func() template.HTML { return template.HTML(licenseBriefHTML) }
@@ -68,55 +72,50 @@ func setupEngine(e *gin.Engine, cl *api.Client, o *oauth.Client, conn *sqlx.DB) 
 	})
 
 	goview.Use(gv)
+}
 
-	//render index use `index` without `.tpl` extension, that will render with master layout.
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		err := goview.Render(w, http.StatusOK, "index", goview.M{})
-		if err != nil {
-			fmt.Fprintf(w, "Render index error: %v!", err)
-		}
-
-	})
-
-	e.Static("/static", "server/static")
-
-	ec := engineContext{E: e, API: cl, O: o, Db: conn}
+func (ec *engineContext) setupIndex() {
 	indexOutput := index()
-	{
-		buildInfo, _ := debug.ReadBuildInfo()
-		e.GET("/", tmplRender(http.StatusOK, "index", goview.M{
-			"title":        "Sisikyō",
-			"index":        indexOutput,
-			"apiURL":       apiURL,
-			"oauthBaseURL": oauthBaseURL,
-			"buildInfo":    buildInfo,
-		}))
-	}
-	e.GET("/register", func(c *gin.Context) {
+	buildInfo, _ := debug.ReadBuildInfo()
+	ec.E.GET("/", cache.CachePage(ec.Store, time.Minute, tmplRender(http.StatusOK, "index", goview.M{
+		"title":        "Sisikyō",
+		"index":        indexOutput,
+		"apiURL":       apiURL,
+		"oauthBaseURL": oauthBaseURL,
+		"buildInfo":    buildInfo,
+	})))
+}
+
+func setupEngine(e *gin.Engine, cl *api.Client, o *oauth.Client, conn *sqlx.DB) {
+	setupViews()
+	e.Static("/static", "server/static") // TODO: cache for static?
+	ec := engineContext{E: e, API: cl, O: o, Db: conn, Store: setupCache(cacheTimeout)}
+	ec.setupIndex()
+	e.GET("/register", cache.CachePage(ec.Store, cacheTimeout, func(c *gin.Context) {
 		tmplRender(http.StatusOK, "register", goview.M{
 			"title": "Register",
 			"url":   ec.oauthAuthorize(c),
 		})(c)
-	})
-	e.GET("/remove", tmplRender(http.StatusOK, "remove", goview.M{
+	}))
+	e.GET("/remove", cache.CachePage(ec.Store, cacheTimeout, tmplRender(http.StatusOK, "remove", goview.M{
 		"title": "Remove",
-	}))
+	})))
 	e.POST("/remove", ec.Remove)
-	e.GET("/about", tmplRender(http.StatusOK, "about", goview.M{
+	e.GET("/about", cache.CachePage(ec.Store, cacheTimeout, tmplRender(http.StatusOK, "about", goview.M{
 		"title": "About",
-	}))
-	e.GET("/license", func(c *gin.Context) {
+	})))
+	e.GET("/license", cache.CachePage(ec.Store, cacheTimeout, func(c *gin.Context) {
 		c.String(http.StatusOK, "%s", licenseFull)
-	})
-	e.GET("/src", func(c *gin.Context) {
+	}))
+	e.GET("/src", cache.CachePage(ec.Store, cacheTimeout, func(c *gin.Context) {
 		c.Redirect(http.StatusPermanentRedirect, "https://gitlab.com/mirukakoro/sisikyo")
-	})
-	e.GET("/events/public.json", ec.PublicQuery(renderJSON))
-	e.GET("/events/public.ics", ec.PublicQuery(renderICS))
-	e.GET("/events/public.html", ec.PublicQuery(ec.renderHTML("Public")))
-	e.GET("/events/:control/private.json", ec.UserQuery(renderJSON))
-	e.GET("/events/:control/private.ics", ec.UserQuery(renderICS))
-	e.GET("/events/:control/private.html", ec.UserQuery(ec.renderHTML("Private")))
+	}))
+	e.GET("/events/public.json", cache.CachePage(ec.Store, cacheTimeout, ec.PublicQuery(renderJSON)))
+	e.GET("/events/public.ics", cache.CachePage(ec.Store, cacheTimeout, ec.PublicQuery(renderICS)))
+	e.GET("/events/public.html", cache.CachePage(ec.Store, cacheTimeout, ec.PublicQuery(ec.renderHTML("Public"))))
+	e.GET("/events/:control/private.json", cache.CachePage(ec.Store, cacheTimeout, ec.UserQuery(renderJSON)))
+	e.GET("/events/:control/private.ics", cache.CachePage(ec.Store, cacheTimeout, ec.UserQuery(renderICS)))
+	e.GET("/events/:control/private.html", cache.CachePage(ec.Store, cacheTimeout, ec.UserQuery(ec.renderHTML("Private"))))
 	e.GET("/o/redirect", ec.OauthRedirect)
 	e.GET("/o/authorize", ec.OauthAuthorize)
 }

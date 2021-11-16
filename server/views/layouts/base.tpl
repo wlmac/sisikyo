@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en-CA">
 	<head>
 	        {{include "layouts/head"}}
 		{{block "head" .}}{{end}}

@@ -8,6 +8,8 @@ import (
 	"flag"
 	"fmt"
 
+	_ "github.com/gin-contrib/cache"
+
 	"github.com/gin-gonic/gin"
 	"gitlab.com/mirukakoro/sisikyo/oauth"
 )

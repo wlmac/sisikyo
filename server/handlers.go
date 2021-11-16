@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/foolin/goview"
+	"github.com/gin-contrib/cache/persistence"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	"gitlab.com/mirukakoro/sisikyo/db"
@@ -19,10 +20,11 @@ import (
 
 // engineContext contains the context required for the server methods
 type engineContext struct { // yes, great naming
-	E   *gin.Engine
-	API *api.Client
-	O   *oauth.Client
-	Db  *sqlx.DB
+	E     *gin.Engine
+	API   *api.Client
+	O     *oauth.Client
+	Db    *sqlx.DB
+	Store persistence.CacheStore
 }
 
 func (e *engineContext) userRemove(params controlParam) error {
