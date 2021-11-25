@@ -6,7 +6,7 @@ OAUTH_CLIENT_ID="XNc77hFC2VjQJUqW0vLrlsH6UInm2Uivf6u52GE3"
 OAUTH_CLIENT_SECRET="250WW680mvzDZuR2I1gGncM3Ezlw85DHUA5SjCgFcidLCvy8qh5VTx96cxJSIjlLXMomfLkWvShuuPx1ICVfqVfLfEyCJhbkR05lf4BXkX0ckzbMkYzt6ujNvwsbDXLj"
 
 run-prod: clean server
-	(cd ../.. && ./server/cmd/server \
+	(cd ../.. && GIN_MODE=release ./server/cmd/server \
 		--api-url http://maclyonsden.com/api/ \
 		--api-timeout 5s)
 
