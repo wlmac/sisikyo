@@ -1,5 +1,5 @@
-//go:build pgx || heroku
-// +build pgx heroku
+//go:build pgx
+// +build pgx
 
 package db
 
