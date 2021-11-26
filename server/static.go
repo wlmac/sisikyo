@@ -4,6 +4,7 @@ Copyright 2021 Ken Shibata
 This program comes with ABSOLUTELY NO WARRANTY and this program is free software, and you are welcome to redistribute it under certain conditions; for details view the `license.md` file.
 This program uses open source software; for details view the `license.md` file.
 */
+
 package server
 
 import (

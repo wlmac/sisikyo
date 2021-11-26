@@ -11,6 +11,9 @@ import (
 
 var mdImagePattern, _ = regexp.Compile(`\!\[[^\]]*\]\([^\)]*\)`)
 
+// GetImageFromMd extracts the URL of the first image thing in CommonMark.
+//
+// Note: this isn't perfect and it is good enough for this purpose.
 func GetImageFromMd(src string) (alt, url string, found bool) {
 	mdImage := mdImagePattern.FindString(src)
 	if mdImage != "" {

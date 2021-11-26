@@ -2,14 +2,16 @@ package discord
 
 import (
 	"fmt"
-	"github.com/bwmarrin/discordgo"
-	"gitlab.com/mirukakoro/sisikyo/events/api"
-	"gitlab.com/mirukakoro/sisikyo/feed"
 	"net/url"
 	"sync"
 	"time"
+
+	"github.com/bwmarrin/discordgo"
+	"gitlab.com/mirukakoro/sisikyo/events/api"
+	"gitlab.com/mirukakoro/sisikyo/feed"
 )
 
+// Discord fulfills feed.Sink.
 type Discord struct {
 	c      *api.Client
 	s      *discordgo.Session
@@ -20,6 +22,7 @@ type Discord struct {
 
 var _ feed.Sink = (*Discord)(nil)
 
+// NewDiscord returns a new Discord.
 func NewDiscord(token string, c *api.Client) (*Discord, error) {
 	s, err := discordgo.New("Bot " + token)
 	if err != nil {
@@ -28,6 +31,7 @@ func NewDiscord(token string, c *api.Client) (*Discord, error) {
 	return &Discord{c: c, s: s}, nil
 }
 
+// Close releases resources.
 func (d *Discord) Close() error { return d.s.Close() }
 
 func tagsField(tags []api.Tag) *discordgo.MessageEmbedField {
@@ -46,6 +50,7 @@ func tagsField(tags []api.Tag) *discordgo.MessageEmbedField {
 
 const timeFmt = `2006-01-02T15:04:05`
 
+// Post fulfills feed.Sink.
 func (d *Discord) Post(ann api.Ann) (u *url.URL, err error) {
 	var org api.Org
 	orgs := api.OrgsResp{}
@@ -60,7 +65,7 @@ func (d *Discord) Post(ann api.Ann) (u *url.URL, err error) {
 	}
 
 	author := api.UserResp{}
-	err = d.c.Do(api.UserReq{Username: ann.Author}, &author)
+	err = d.c.Do(api.UserReq{Username: string(ann.Author)}, &author)
 	if err != nil {
 		return nil, fmt.Errorf("user: %w", err)
 	}

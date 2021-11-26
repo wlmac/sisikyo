@@ -1,3 +1,4 @@
+// Package util provides utilities.
 package util
 
 import (
@@ -5,6 +6,7 @@ import (
 	"math/big"
 )
 
+// GenRandom generates a base64 string using crypto/rand.
 func GenRandom(l int) (string, error) {
 	const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
 	result := make([]byte, l)

@@ -11,7 +11,8 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-// Package api provides abstractions for the REST API.
+// Package api provides abstractions for Metropolis' REST API.
+// Look at Metropolis' REST API's source code / documentation for more info.
 package api
 
 import (
@@ -41,7 +42,7 @@ var Reqs = [...]Req{
 	MeScheduleWeekReq{},
 	MeTimetableReq{},
 	EventsReq{},
-	//TimetablesReq{},
+	//TimetablesReq{}, // TODO: wait for the Protobuf API
 	//TimetableScheduleReq{},
 	//TimetableReq{},
 	TermsReq{},

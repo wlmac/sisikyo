@@ -3,14 +3,16 @@ package debug
 import (
 	"bytes"
 	"fmt"
+	"net/url"
+	"sync"
+
 	"github.com/bwmarrin/discordgo"
 	"gitlab.com/mirukakoro/sisikyo/events/api"
 	"gitlab.com/mirukakoro/sisikyo/feed"
 	"gitlab.com/mirukakoro/sisikyo/feed/image2"
-	"net/url"
-	"sync"
 )
 
+// Debug is a feed.Sink just for debugging purposes.
 type Debug struct {
 	c      *api.Client
 	s      *discordgo.Session
@@ -21,6 +23,7 @@ type Debug struct {
 
 var _ feed.Sink = (*Debug)(nil)
 
+// NewDebug makes a new Debug.
 func NewDebug(token string, c *api.Client) (*Debug, error) {
 	s, err := discordgo.New("Bot " + token)
 	if err != nil {
@@ -29,6 +32,7 @@ func NewDebug(token string, c *api.Client) (*Debug, error) {
 	return &Debug{c: c, s: s}, nil
 }
 
+// Close releases resources.
 func (d *Debug) Close() error { return d.s.Close() }
 
 func tagsField(tags []api.Tag) *discordgo.MessageEmbedField {
@@ -47,6 +51,7 @@ func tagsField(tags []api.Tag) *discordgo.MessageEmbedField {
 
 const timeFmt = `2006-01-02T15:04:05`
 
+// Post fulfills feed.Sink.
 func (d *Debug) Post(ann api.Ann) (u *url.URL, err error) {
 	svg, caption, err := image2.AnnToImageAndText2(d.c, ann)
 	if err != nil {

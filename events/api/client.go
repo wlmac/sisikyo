@@ -10,6 +10,7 @@ import (
 	"sync"
 )
 
+// Client abstracts requesting the server.
 type Client struct {
 	client  HTTPClient
 	baseURL *url.URL
@@ -17,16 +18,22 @@ type Client struct {
 	auth    Auth
 }
 
+// DefaultBaseURL is the default base URL (The Lyon's Den)
 var DefaultBaseURL, _ = url.Parse("https://maclyonsden.com/api/")
 
+// DefaultClient returns a new client using the default URL.
+//
+// Deprecated: use NewClient instead.
 func DefaultClient() *Client {
 	return &Client{client: http.DefaultClient, baseURL: DefaultBaseURL}
 }
 
+// NewClient returns a new client.
 func NewClient(client HTTPClient, baseURL *url.URL) *Client {
 	return &Client{client: client, baseURL: baseURL}
 }
 
+// Rel resolves a relative URL to the base URL.
 func (c *Client) Rel(u *url.URL) *url.URL {
 	if u.IsAbs() {
 		return u
@@ -34,14 +41,17 @@ func (c *Client) Rel(u *url.URL) *url.URL {
 	return c.baseURL.ResolveReference(u)
 }
 
+// HTTPClient returns the HTTPClient this Client is using.
 func (c *Client) HTTPClient() HTTPClient {
 	return c.client
 }
 
+// BaseURL returns the base URL this Client is using.
 func (c *Client) BaseURL() *url.URL {
 	return c.baseURL
 }
 
+// Do performs a Req and unmarshals its result to v.
 func (c *Client) Do(req Req, v interface{}) (err error) {
 	request, err := req.Req(c)
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 const APIVersion = "v3.2.0"
 
 func init() {
+	// make sure API version (in source code) is valid.
 	if !semver.IsValid(APIVersion) {
 		panic("api: APIVersion is invalid")
 	}

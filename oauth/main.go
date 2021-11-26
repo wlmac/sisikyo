@@ -1,3 +1,4 @@
+// Package oauth implements OAuth 2 APIs.
 package oauth
 
 // TOOD: properly revoke token on UserRemove
@@ -23,8 +24,11 @@ func NewClient(config oauth2.Config) *Client {
 }
 
 var (
+	// ErrStateMismatch says that the state from the URl params and the browser cookie mismatched. This is a security issue.
 	ErrStateMismatch = errors.New("state: unexpected mismatch") // given states do not match
-	ErrParamsInvalid = errors.New("params: invalid")            // invalid params
+
+	// ErrParamsInvalid says that the URL params are invalid.
+	ErrParamsInvalid = errors.New("params: invalid") // invalid params
 )
 
 // Auth returns a oauth2.Token from a code.

@@ -2,13 +2,12 @@ package api
 
 import (
 	"net/http"
-	"time"
 )
 
+// Auth stores basic information for authentication.
 type Auth struct {
-	Access    string    `json:"access"`
-	Refresh   string    `json:"refresh"`
-	Generated time.Time `json:"-"`
+	Access  string `json:"access"`
+	Refresh string `json:"refresh"`
 }
 
 func (a Auth) aHeader() string               { return "Bearer " + a.Access }

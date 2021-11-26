@@ -4,13 +4,6 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
-	"github.com/disintegration/imaging"
-	"github.com/golang/freetype"
-	"github.com/golang/freetype/truetype"
-	"gitlab.com/mirukakoro/sisikyo/events/api"
-	"gitlab.com/mirukakoro/sisikyo/feed/font"
-	"gitlab.com/mirukakoro/sisikyo/feed/text"
-	"golang.org/x/image/math/fixed"
 	"image"
 	"image/color"
 	"image/draw"
@@ -19,12 +12,23 @@ import (
 	_ "image/png"
 	"io"
 	"net/http"
+
+	"github.com/disintegration/imaging"
+	"github.com/golang/freetype"
+	"github.com/golang/freetype/truetype"
+	"gitlab.com/mirukakoro/sisikyo/events/api"
+	"gitlab.com/mirukakoro/sisikyo/feed/font"
+	"gitlab.com/mirukakoro/sisikyo/feed/text"
+	"golang.org/x/image/math/fixed"
 )
 
 const ratioOfIconToImage = 0.2
 
 var resizeFilter = imaging.NearestNeighbor
 
+// AnnToImageAndText makes an image from an Ann.
+//
+// Deprecated: use image2.AnnToImageAndText2.
 func AnnToImageAndText(c *api.Client, ann api.Ann, rect image.Rectangle) (img *image.NRGBA, text string, err error) {
 	img = image.NewNRGBA(rect)
 	draw.Draw(img, img.Bounds(), &image.Uniform{C: image.Black}, image.Point{}, draw.Src)

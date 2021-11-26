@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// Data is the interface for data returned by Metropolis.
 type Data interface {
 	URL(c *Client) *url.URL
 }
@@ -24,6 +25,7 @@ var _ = [...]Data{
 	Schedule{},
 }
 
+// User represents a single Metropolis user.
 type User struct {
 	Username       Username      `json:"username"`
 	FirstName      string        `json:"first_name"`
@@ -35,20 +37,26 @@ type User struct {
 	TagsFollowing  []interface{} `json:"tags_following"`
 }
 
+// Returns the name of the user in Canadian English format.
+//
+// Deprecated: use a locale-aware way to do this.
 func (u User) Name() string {
 	return u.FirstName + " " + u.LastName
 }
 
+// URL fulfills Data.
 func (u User) URL(c *Client) *url.URL {
 	sub, _ := url.Parse(string(u.Username))
 	return c.BaseURL().ResolveReference(sub)
 }
 
+// Timeframe is a frame of time between two time.Times.
 type Timeframe struct {
 	Start time.Time `json:"start"`
 	End   time.Time `json:"end"`
 }
 
+// URL fulfills Data.
 func (t Timeframe) URL(_ *Client) *url.URL { return nil }
 
 // Ann represents an announcement.
@@ -76,6 +84,7 @@ type Ann struct {
 
 var annBaseURL, _ = url.Parse("/announcement/")
 
+// URL fulfills Data.
 func (a Ann) URL(c *Client) *url.URL {
 	id, _ := url.Parse(strconv.FormatInt(int64(a.Id), 10))
 	return c.baseURL.ResolveReference(annBaseURL).ResolveReference(id)
@@ -96,6 +105,7 @@ func (a Ann) String() string {
 	)
 }
 
+// ReqOrg requests its Org.
 func (a Ann) ReqOrg(c *Client) (Org, error) {
 	resp := OrgsResp{}
 	err := c.Do(OrgsReq{}, &resp)
@@ -123,6 +133,7 @@ type Course struct {
 	Submitter interface{} `json:"submitter"`
 }
 
+// URL fulfills Data.
 func (c Course) URL(c2 *Client) *url.URL { return c2.baseURL }
 
 func (c Course) String() string {
@@ -143,6 +154,7 @@ type Term struct {
 	Frozen bool      `json:"is_frozen"`
 }
 
+// URL fulfills Data.
 func (t Term) URL(c *Client) *url.URL { return c.baseURL }
 
 // Event represents an event,
@@ -160,6 +172,7 @@ type Event struct {
 	Public bool      `json:"is_public"`
 }
 
+// URL fulfills Data.
 func (e Event) URL(c *Client) *url.URL { return c.baseURL }
 
 func (e Event) String() string {
@@ -195,11 +208,13 @@ type Org struct {
 
 var orgBaseURL, _ = url.Parse("/club/")
 
+// URL fulfills Data.
 func (o Org) URL(c *Client) *url.URL {
 	slug, _ := url.Parse(url.PathEscape(string(o.Slug)))
 	return c.baseURL.ResolveReference(orgBaseURL).ResolveReference(slug)
 }
 
+// IconURL returns the URL of the icon of itself.
 func (o Org) IconURL(c *Client) *url.URL {
 	iconURL, _ := url.Parse(o.Icon)
 	return c.baseURL.ResolveReference(iconURL)
@@ -212,8 +227,10 @@ type Tag struct {
 	Color string `json:"color"`
 }
 
+// URL fulfills Data.
 func (t Tag) URL(c *Client) *url.URL { return c.baseURL }
 
+// Schedule represents the schedule of a course.
 type Schedule struct {
 	Description struct {
 		Time   string `json:"time"`
@@ -225,8 +242,10 @@ type Schedule struct {
 	Course *CourseCode `json:"course"`
 }
 
+// URL fulfills Data.
 func (s Schedule) URL(_ *Client) *url.URL { return nil }
 
+// Event generates an event from itself.
 func (s Schedule) Event(c *Client) (Event, error) {
 	course, err := s.Course.Deref(c)
 	if err != nil {

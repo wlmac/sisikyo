@@ -8,6 +8,7 @@ import (
 //go:embed tmpls/*
 var fs embed.FS
 
+// Tmpl is used for rendering text.
 var Tmpl *template.Template
 
 func init() {

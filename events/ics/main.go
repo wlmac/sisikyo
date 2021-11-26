@@ -19,6 +19,7 @@ func onlyDay(t time.Time) time.Time {
 	return time.Date(y, m, d, 0, 0, 0, 0, time.UTC)
 }
 
+// GetCal renders an iCalendar file.
 func GetCal(tmpl *template.Template, resp api.EventsResp) (rendered string, err error) {
 	cal := ics.NewCalendar()
 	for i, event := range resp {
@@ -45,6 +46,7 @@ func GetCal(tmpl *template.Template, resp api.EventsResp) (rendered string, err 
 	return
 }
 
+// Tmpl is the template used for rendering.
 var Tmpl *template.Template
 
 func init() {

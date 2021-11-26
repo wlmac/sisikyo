@@ -1,4 +1,6 @@
-// Package db provides types for storing data in SQL databases using https://github.com/jmoiron/sqlx.
+// Package db provides SQL types and drivers for database/sql if built with the appropriate build tags.
+//
+// The types are tagged to work with github.com/jmoiron/sqlx.
 package db
 
 import (
@@ -10,10 +12,12 @@ import (
 // Schema is the SQL schema of everything.
 const Schema = UserSchema
 
+// UserRemove removes a user.
 const UserRemove = `
 DELETE FROM user_table WHERE control = :control;
 `
 
+// UserRegister inserts a new user.
 const UserRegister = `
 INSERT INTO user_table
 (control, access_token, refresh_token, token_type, expiry)
@@ -21,6 +25,7 @@ VALUES
 (:control, :access_token, :refresh_token, :token_type, :expiry);
 `
 
+// UserQuery queries for a user.
 const UserQuery = `
 SELECT * FROM user_table WHERE control = :control;
 `
@@ -38,7 +43,9 @@ CREATE TABLE IF NOT EXISTS user_table (
 
 // User stores a user's identity and access to the API.
 type User struct {
-	Control      string    `db:"control"` // random string of base64 characters
+	Control string `db:"control"` // random string of base64 characters
+
+	// The fields below mirror golang.org/x/oauth2.Config.
 	AccessToken  string    `db:"access_token"`
 	RefreshToken string    `db:"refresh_token"`
 	TokenType    string    `db:"token_type"`
@@ -55,7 +62,7 @@ func (u User) Token() *oauth2.Token {
 	}
 }
 
-// ApplyToken sets some fields from an oauth2.Token.
+// ApplyToken sets some of its own fields from an oauth2.Token.
 func (u *User) ApplyToken(tok *oauth2.Token) {
 	u.AccessToken = tok.AccessToken
 	u.RefreshToken = tok.RefreshToken

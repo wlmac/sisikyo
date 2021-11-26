@@ -8,6 +8,7 @@ import (
 	"gitlab.com/mirukakoro/sisikyo/events/api"
 )
 
+// ICSOptions has URL params for requests.
 type ICSOptions struct {
 	OAuthSecret string `form:"secret" binding:""`
 
@@ -23,6 +24,7 @@ type ICSOptions struct {
 	Desc   string        `form:"desc" binding:""`
 }
 
+// List returns matching Events.
 func (o ICSOptions) List(c *api.Client) ([]api.Event, error) {
 	events := api.EventsResp{}
 	err := c.Do(api.EventsReq{

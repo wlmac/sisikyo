@@ -3,15 +3,17 @@ package instagram
 import (
 	"bytes"
 	"fmt"
-	"github.com/ahmdrz/goinsta/v2"
-	"gitlab.com/mirukakoro/sisikyo/events/api"
-	"gitlab.com/mirukakoro/sisikyo/feed"
 	"image/png"
 	"net/url"
 	"sync"
 	"time"
+
+	"github.com/ahmdrz/goinsta/v2"
+	"gitlab.com/mirukakoro/sisikyo/events/api"
+	"gitlab.com/mirukakoro/sisikyo/feed"
 )
 
+// Instagram fulfills feed.Sink.
 type Instagram struct {
 	c      *api.Client
 	fmt    feed.FormatImager
@@ -26,6 +28,7 @@ func (i *Instagram) wait() {
 	time.Sleep(i.delay())
 }
 
+// Post fulfills feed.Sink.
 func (i *Instagram) Post(ann api.Ann) (url *url.URL, err error) {
 	img, caption, err := i.fmt.FormatImage(ann)
 	if err != nil {

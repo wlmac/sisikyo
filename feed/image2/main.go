@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"github.com/disintegration/imaging"
-	"gitlab.com/mirukakoro/sisikyo/events/api"
-	"gitlab.com/mirukakoro/sisikyo/feed/text"
 	"image"
 	"image/draw"
 	"image/png"
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/disintegration/imaging"
+	"gitlab.com/mirukakoro/sisikyo/events/api"
+	"gitlab.com/mirukakoro/sisikyo/feed/text"
 )
 
 type tmplNamespace struct {
@@ -34,6 +35,7 @@ func resizeCenter(size int, orig image.Image, filter imaging.ResampleFilter) (re
 	return
 }
 
+// AnnToImageAndText2 generates an SVG and accompanying alt text from an Ann.
 func AnnToImageAndText2(c *api.Client, ann api.Ann) (svg, text string, err error) {
 	if ann.XImageURL != "" {
 		var xImg image.Image
@@ -54,7 +56,7 @@ func AnnToImageAndText2(c *api.Client, ann api.Ann) (svg, text string, err error
 		Ann: ann,
 	}
 
-	err = c.Do(api.UserReq{Username: ann.Author}, &ns.Author)
+	err = c.Do(api.UserReq{Username: string(ann.Author)}, &ns.Author)
 	if err != nil {
 		err = fmt.Errorf("author: %w", err)
 		return
@@ -157,6 +159,7 @@ func dataURI(img image.Image) (string, error) {
 	return DataURI("image/png", buf.Bytes()), nil
 }
 
+// DataURI makes a data: URI.
 func DataURI(mimeType string, src []byte) string {
 	return "data:" + mimeType + ";base64," + base64.StdEncoding.EncodeToString(src)
 }

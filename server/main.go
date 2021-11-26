@@ -1,6 +1,7 @@
 // This program, Sisikyo, is a program that provides utilities for an API.
 // Copyright (C) 2021 Ken Shibata
 
+// Package server implements a server.
 package server
 
 import (
@@ -14,6 +15,7 @@ import (
 	"gitlab.com/mirukakoro/sisikyo/oauth"
 )
 
+// Main runs the server. It should only be called once in a program from main().
 func Main() error {
 	flag.Parse()
 	printLicenseInfo()
